@@ -6,63 +6,71 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--tg-theme-bg-color, #f2f2f7);
-  color: var(--tg-theme-text-color, #1c1c1e);
-  line-height: 1.4;
+  background-color: var(--tg-theme-bg-color, #0f0f0f);
+  color: var(--tg-theme-text-color, #ffffff);
+  line-height: 1.45;
 }
 
 .app {
-  padding: 20px 16px;
+  padding: 20px 16px 90px;
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
 }
 
 h1 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   margin-bottom: 6px;
   text-align: center;
+  color: #ffffff;
 }
 
 h2 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 16px;
   text-align: center;
-  color: #1c1c1e;
+  color: #ffffff;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 p {
   text-align: center;
-  opacity: 0.7;
-  margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 16px;
   font-size: 15px;
 }
 
 .user-info {
-  background: var(--tg-theme-secondary-bg-color, #ffffff);
+  background: rgba(255, 255, 255, 0.08);
   padding: 14px 16px;
-  border-radius: 14px;
+  border-radius: 16px;
   margin: 20px 0;
   text-align: center;
   font-size: 15px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  color: #ffffff;
 }
 
 .main-button {
   display: block;
   width: 100%;
-  background: linear-gradient(135deg, #2481cc, #1a6fb5);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   border: none;
   padding: 16px;
   font-size: 17px;
   font-weight: 600;
-  border-radius: 14px;
+  border-radius: 16px;
   cursor: pointer;
-  margin-top: 12px;
+  margin-top: 8px;
   transition: transform 0.15s, opacity 0.15s;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 .main-button:active {
@@ -74,59 +82,58 @@ p {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 16px 0 24px;
+  margin: 16px 0 20px;
 }
 
 .option-btn {
-  background: #ffffff;
-  color: #1c1c1e;
-  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 16px 18px;
-  border-radius: 14px;
+  border-radius: 16px;
   font-size: 16px;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   transition: background 0.15s;
-  font-weight: 500;
 }
 
 .option-btn:active {
-  background: #e8e8ed;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .back-button {
   display: block;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 12px;
   background: transparent;
   border: none;
-  color: var(--tg-theme-link-color, #2481cc);
+  color: #60a5fa;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   padding: 12px;
   text-align: center;
 }
+
 .habit-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--tg-theme-secondary-bg-color, #2c2c2e);
-  color: var(--tg-theme-text-color, #ffffff);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
   padding: 14px 16px;
-  border-radius: 14px;
+  border-radius: 16px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .check-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: 2px solid #8e8e93;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   background: transparent;
-  color: var(--tg-theme-text-color, #ffffff);
+  color: #ffffff;
   font-size: 18px;
   display: flex;
   align-items: center;
@@ -135,20 +142,20 @@ p {
 }
 
 .check-btn.done {
-  background: #34c759;
-  border-color: #34c759;
+  background: #22c55e;
+  border-color: #22c55e;
   color: white;
 }
 
 .add-habit-btn {
   width: 100%;
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 14px;
-  border-radius: 14px;
-  border: 2px dashed #8e8e93;
+  border-radius: 16px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.25);
   background: transparent;
   font-size: 15px;
-  color: var(--tg-theme-hint-color, #8e8e93);
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
 }
 
@@ -156,35 +163,46 @@ p {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 12px;
 }
 
 .form label {
   font-size: 14px;
   font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: -4px;
 }
 
 .form input {
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
   font-size: 16px;
   outline: none;
 }
 
-.form input:focus {
-  border-color: #2481cc;
+.form input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
 }
+
+.form input:focus {
+  border-color: #3b82f6;
+}
+
+/* Навигация */
 .nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
-  background: var(--tg-theme-secondary-bg-color, #1c1c1e);
-  border-top: 1px solid rgba(255,255,255,0.1);
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
 }
 
 .nav-item {
@@ -192,27 +210,24 @@ p {
   padding: 14px;
   border: none;
   background: transparent;
-  color: var(--tg-theme-hint-color, #8e8e93);
+  color: rgba(255, 255, 255, 0.45);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 
 .nav-item.active {
-  color: var(--tg-theme-link-color, #2481cc);
+  color: #60a5fa;
 }
 
-.app {
-  padding-bottom: 80px; /* чтобы контент не прятался под навигацией */
-}
-/* ===== Онбординг ===== */
+/* Онбординг */
 .onboarding {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 24px 20px 60px;
-  background: var(--tg-theme-bg-color, #0f0f0f);
+  padding: 24px 20px 70px;
+  background: #0f0f0f;
 }
 
 .onb-screen {
@@ -225,42 +240,43 @@ p {
 }
 
 .onb-emoji {
-  font-size: 64px;
-  margin-bottom: 20px;
+  font-size: 72px;
+  margin-bottom: 24px;
 }
 
 .onboarding h1 {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  line-height: 1.2;
+  font-size: 34px;
+  font-weight: 800;
+  margin-bottom: 18px;
+  line-height: 1.15;
+  color: #ffffff;
 }
 
 .onb-subtitle {
   font-size: 17px;
-  line-height: 1.5;
-  opacity: 0.85;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 40px;
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .onb-dots {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
 .dot.active {
-  background: #2481cc;
-  width: 24px;
+  background: #3b82f6;
+  width: 26px;
   border-radius: 4px;
 }
