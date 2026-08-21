@@ -176,3 +176,32 @@ p {
 .form input:focus {
   border-color: #2481cc;
 }
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--tg-theme-secondary-bg-color, #1c1c1e);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-hint-color, #8e8e93);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  color: var(--tg-theme-link-color, #2481cc);
+}
+
+.app {
+  padding-bottom: 80px; /* чтобы контент не прятался под навигацией */
+}
