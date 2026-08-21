@@ -1,0 +1,176 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--tg-theme-bg-color, #f2f2f7);
+  color: var(--tg-theme-text-color, #1c1c1e);
+  line-height: 1.4;
+}
+
+.app {
+  padding: 20px 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #1c1c1e;
+}
+
+p {
+  text-align: center;
+  opacity: 0.7;
+  margin-bottom: 20px;
+  font-size: 15px;
+}
+
+.user-info {
+  background: var(--tg-theme-secondary-bg-color, #ffffff);
+  padding: 14px 16px;
+  border-radius: 14px;
+  margin: 20px 0;
+  text-align: center;
+  font-size: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.main-button {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #2481cc, #1a6fb5);
+  color: white;
+  border: none;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.main-button:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 24px;
+}
+
+.option-btn {
+  background: #ffffff;
+  color: #1c1c1e;
+  border: none;
+  padding: 16px 18px;
+  border-radius: 14px;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: background 0.15s;
+  font-weight: 500;
+}
+
+.option-btn:active {
+  background: #e8e8ed;
+}
+
+.back-button {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: none;
+  color: var(--tg-theme-link-color, #2481cc);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 12px;
+  text-align: center;
+}
+.habit-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.check-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.check-btn.done {
+  background: #34c759;
+  border-color: #34c759;
+  color: white;
+}
+
+.add-habit-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 2px dashed #ccc;
+  background: transparent;
+  font-size: 15px;
+  color: #666;
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.form label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: -4px;
+}
+
+.form input {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  outline: none;
+}
+
+.form input:focus {
+  border-color: #2481cc;
+}
