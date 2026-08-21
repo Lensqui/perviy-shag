@@ -4,7 +4,7 @@ import './App.css'
 
 function App() {
   const [user, setUser] = useState(null)
-  const [screen, setScreen] = useState('main') // main | lazy | chain | add | diary
+  const [screen, setScreen] = useState('main')
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -13,13 +13,41 @@ function App() {
   const [streak, setStreak] = useState(0)
   const [diaryEntries, setDiaryEntries] = useState([])
   const [diaryAnswers, setDiaryAnswers] = useState({ q1: '', q2: '', q3: '' })
+  const [currentChain, setCurrentChain] = useState([])
 
-  const chain = [
-    { title: 'Встань и сделай 5 приседаний', desc: 'Просто встань и сделай 5 раз' },
-    { title: 'Выпей воды', desc: 'Сделай несколько глотков воды' },
-    { title: 'Пройдись по комнате', desc: 'Пройди 20–30 шагов' },
-    { title: 'Напиши одно предложение', desc: 'Открой заметки и напиши любую мысль' },
-  ]
+  // Разные цепочки под разные причины
+  const chains = {
+    'no_energy': [
+      { title: 'Просто встань', desc: 'Встань с места на 10 секунд' },
+      { title: 'Выпей воды', desc: 'Сделай 3–4 глотка воды' },
+      { title: 'Размять плечи', desc: 'Медленно подними и опусти плечи 5 раз' },
+      { title: 'Сделай 3 глубоких вдоха', desc: 'Вдох носом — выдох ртом' },
+    ],
+    'dont_know': [
+      { title: 'Возьми лист бумаги или телефон', desc: 'Просто открой заметки' },
+      { title: 'Напиши задачу одним предложением', desc: 'Как есть, без красоты' },
+      { title: 'Разбей на 3 маленьких шага', desc: 'Самые крошечные действия' },
+      { title: 'Выбери только первый шаг', desc: 'Тот, который можно сделать за 2 минуты' },
+    ],
+    'scared': [
+      { title: 'Скажи себе вслух', desc: '«Мне не нужно делать идеально»' },
+      { title: 'Поставь таймер на 2 минуты', desc: 'Только 2 минуты и всё' },
+      { title: 'Сделай самый уродливый вариант', desc: 'Разреши себе сделать плохо' },
+      { title: 'Закрой глаза на 10 секунд', desc: 'Просто побудь в тишине' },
+    ],
+    'distracted': [
+      { title: 'Положи телефон экраном вниз', desc: 'Или в другую комнату' },
+      { title: 'Закрой все лишние вкладки', desc: 'Оставь только нужное' },
+      { title: 'Поставь таймер на 5 минут', desc: 'Только 5 минут фокуса' },
+      { title: 'Скажи вслух цель', desc: 'Одним предложением, что ты сейчас делаешь' },
+    ],
+    'just_lazy': [
+      { title: 'Встань и сделай 5 приседаний', desc: 'Просто 5 раз' },
+      { title: 'Выпей воды', desc: 'Несколько глотков' },
+      { title: 'Пройдись по комнате', desc: '20–30 шагов' },
+      { title: 'Напиши одно предложение', desc: 'Любую мысль в заметки' },
+    ]
+  }
 
   const templates = [
     { name: 'Начать работу', firstStep: 'Открыть ноутбук и написать одно предложение' },
@@ -124,11 +152,17 @@ function App() {
     alert('Запись сохранена')
   }
 
+  const startChain = (type) => {
+    setCurrentChain(chains[type])
+    setCurrentStep(0)
+    setScreen('chain')
+  }
+
   // ===== Нижняя навигация =====
   const Nav = () => (
     <div className="nav">
       <button 
-        className={screen === 'main' || screen === 'lazy' || screen === 'chain' || screen === 'add' ? 'nav-item active' : 'nav-item'}
+        className={['main', 'lazy', 'chain', 'add'].includes(screen) ? 'nav-item active' : 'nav-item'}
         onClick={() => setScreen('main')}
       >
         Сегодня
@@ -279,11 +313,11 @@ function App() {
       <div className="app">
         <h2>Что мешает начать?</h2>
         <div className="options">
-          {['Совсем нет сил', 'Не знаю, с чего начать', 'Страшно / не хочется делать плохо', 'Хочется отвлечься', 'Просто лень без причины'].map(text => (
-            <button key={text} className="option-btn" onClick={() => { setCurrentStep(0); setScreen('chain') }}>
-              {text}
-            </button>
-          ))}
+          <button className="option-btn" onClick={() => startChain('no_energy')}>Совсем нет сил</button>
+          <button className="option-btn" onClick={() => startChain('dont_know')}>Не знаю, с чего начать</button>
+          <button className="option-btn" onClick={() => startChain('scared')}>Страшно / не хочется делать плохо</button>
+          <button className="option-btn" onClick={() => startChain('distracted')}>Хочется отвлечься</button>
+          <button className="option-btn" onClick={() => startChain('just_lazy')}>Просто лень без причины</button>
         </div>
         <button className="back-button" onClick={() => setScreen('main')}>← Назад</button>
       </div>
@@ -292,17 +326,25 @@ function App() {
 
   // ===== Цепочка =====
   if (screen === 'chain') {
-    const step = chain[currentStep]
+    const step = currentChain[currentStep]
+    if (!step) return null
+
     return (
       <div className="app">
-        <div style={{ marginBottom: 8, opacity: 0.6, fontSize: 14 }}>Шаг {currentStep + 1} из {chain.length}</div>
+        <div style={{ marginBottom: 8, opacity: 0.6, fontSize: 14 }}>
+          Шаг {currentStep + 1} из {currentChain.length}
+        </div>
         <h2>{step.title}</h2>
         <p>{step.desc}</p>
         <button className="main-button" onClick={() => {
-          if (currentStep < chain.length - 1) setCurrentStep(currentStep + 1)
-          else { setScreen('main'); setCurrentStep(0) }
+          if (currentStep < currentChain.length - 1) {
+            setCurrentStep(currentStep + 1)
+          } else {
+            setScreen('main')
+            setCurrentStep(0)
+          }
         }}>
-          {currentStep < chain.length - 1 ? 'Сделал' : 'Готово!'}
+          {currentStep < currentChain.length - 1 ? 'Сделал' : 'Готово!'}
         </button>
         <button className="back-button" onClick={() => setScreen('lazy')}>← Назад</button>
       </div>
