@@ -205,3 +205,62 @@ p {
 .app {
   padding-bottom: 80px; /* чтобы контент не прятался под навигацией */
 }
+/* ===== Онбординг ===== */
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 20px 60px;
+  background: var(--tg-theme-bg-color, #0f0f0f);
+}
+
+.onb-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.onb-emoji {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.onboarding h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.onb-subtitle {
+  font-size: 17px;
+  line-height: 1.5;
+  opacity: 0.85;
+  margin-bottom: 40px;
+  max-width: 320px;
+}
+
+.onb-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transition: all 0.3s;
+}
+
+.dot.active {
+  background: #2481cc;
+  width: 24px;
+  border-radius: 4px;
+}

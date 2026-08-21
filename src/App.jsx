@@ -4,7 +4,7 @@ import './App.css'
 
 function App() {
   const [user, setUser] = useState(null)
-  const [screen, setScreen] = useState('main')
+  const [screen, setScreen] = useState('loading')
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -14,8 +14,8 @@ function App() {
   const [diaryEntries, setDiaryEntries] = useState([])
   const [diaryAnswers, setDiaryAnswers] = useState({ q1: '', q2: '', q3: '' })
   const [currentChain, setCurrentChain] = useState([])
+  const [onboardingStep, setOnboardingStep] = useState(0)
 
-  // Разные цепочки под разные причины
   const chains = {
     'no_energy': [
       { title: 'Просто встань', desc: 'Встань с места на 10 секунд' },
@@ -72,6 +72,7 @@ function App() {
     const savedStreak = localStorage.getItem('streak')
     const savedDiary = localStorage.getItem('diary')
     const lastDate = localStorage.getItem('lastDate')
+    const onboardingDone = localStorage.getItem('onboardingDone')
     const today = new Date().toDateString()
 
     let loadedHabits = []
@@ -92,6 +93,13 @@ function App() {
     }
 
     setIsLoaded(true)
+
+    // Решаем, показывать онбординг или нет
+    if (!onboardingDone) {
+      setScreen('onboarding')
+    } else {
+      setScreen('main')
+    }
   }, [])
 
   // Сохранение
@@ -103,13 +111,22 @@ function App() {
     }
   }, [habits, streak, diaryEntries, isLoaded])
 
+  const finishOnboarding = () => {
+    localStorage.setItem('onboardingDone', 'true')
+    setScreen('main')
+  }
+
   const addHabit = (name, firstStep) => {
     if (!name.trim() || !firstStep.trim()) return
     const habit = { id: Date.now(), name, firstStep, doneToday: false }
     setHabits(prev => [...prev, habit])
     setNewHabitName('')
     setNewFirstStep('')
-    setScreen('main')
+    if (screen === 'onboarding') {
+      finishOnboarding()
+    } else {
+      setScreen('main')
+    }
   }
 
   const toggleHabit = (id) => {
@@ -176,6 +193,75 @@ function App() {
     </div>
   )
 
+  // ===== ОНБОРДИНГ =====
+  if (screen === 'onboarding') {
+    return (
+      <div className="onboarding">
+        {onboardingStep === 0 && (
+          <div className="onb-screen">
+            <div className="onb-emoji">🚀</div>
+            <h1>Первый шаг</h1>
+            <p className="onb-subtitle">
+              Это не обычный трекер привычек.<br/>
+              Он помогает <strong>начать</strong>, когда совсем лень.
+            </p>
+            <button className="main-button" onClick={() => setOnboardingStep(1)}>
+              Дальше
+            </button>
+          </div>
+        )}
+
+        {onboardingStep === 1 && (
+          <div className="onb-screen">
+            <div className="onb-emoji">💡</div>
+            <h1>Главный секрет</h1>
+            <p className="onb-subtitle">
+              Мы не пытаемся сразу сделать всё идеально.<br/><br/>
+              Мы делаем <strong>крошечный первый шаг</strong> — и этого достаточно, чтобы запуститься.
+            </p>
+            <button className="main-button" onClick={() => setOnboardingStep(2)}>
+              Понял
+            </button>
+          </div>
+        )}
+
+        {onboardingStep === 2 && (
+          <div className="onb-screen">
+            <div className="onb-emoji">🎯</div>
+            <h1>Выбери первую привычку</h1>
+            <p className="onb-subtitle" style={{ marginBottom: 24 }}>
+              Начни с одной. Потом можно добавить больше.
+            </p>
+
+            <div className="options" style={{ width: '100%' }}>
+              {templates.slice(0, 4).map(t => (
+                <button 
+                  key={t.name} 
+                  className="option-btn" 
+                  onClick={() => addHabit(t.name, t.firstStep)}
+                >
+                  <div style={{ fontWeight: 600 }}>{t.name}</div>
+                  <div style={{ fontSize: 13, opacity: 0.7, marginTop: 3 }}>{t.firstStep}</div>
+                </button>
+              ))}
+            </div>
+
+            <button className="back-button" onClick={finishOnboarding} style={{ marginTop: 20 }}>
+              Пропустить
+            </button>
+          </div>
+        )}
+
+        {/* Точки прогресса */}
+        <div className="onb-dots">
+          {[0, 1, 2].map(i => (
+            <div key={i} className={`dot ${onboardingStep === i ? 'active' : ''}`} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   // ===== Главный экран =====
   if (screen === 'main') {
     return (
@@ -232,36 +318,16 @@ function App() {
 
         <div className="form" style={{ marginBottom: 30 }}>
           <label>Что сегодня мешало начать?</label>
-          <input 
-            type="text" 
-            value={diaryAnswers.q1}
-            onChange={e => setDiaryAnswers({...diaryAnswers, q1: e.target.value})}
-            placeholder="Лень, усталость, отвлечения..."
-          />
-
+          <input type="text" value={diaryAnswers.q1} onChange={e => setDiaryAnswers({...diaryAnswers, q1: e.target.value})} placeholder="Лень, усталость, отвлечения..." />
           <label>Какой самый маленький шаг я сделал?</label>
-          <input 
-            type="text" 
-            value={diaryAnswers.q2}
-            onChange={e => setDiaryAnswers({...diaryAnswers, q2: e.target.value})}
-            placeholder="Открыл ноутбук, сделал 5 приседаний..."
-          />
-
+          <input type="text" value={diaryAnswers.q2} onChange={e => setDiaryAnswers({...diaryAnswers, q2: e.target.value})} placeholder="Открыл ноутбук..." />
           <label>Что завтра сделаю ещё проще?</label>
-          <input 
-            type="text" 
-            value={diaryAnswers.q3}
-            onChange={e => setDiaryAnswers({...diaryAnswers, q3: e.target.value})}
-            placeholder="Ещё меньший первый шаг..."
-          />
-
+          <input type="text" value={diaryAnswers.q3} onChange={e => setDiaryAnswers({...diaryAnswers, q3: e.target.value})} placeholder="Ещё меньший шаг..." />
           <button className="main-button" onClick={saveDiary}>Сохранить запись</button>
         </div>
 
         <h3 style={{ marginBottom: 12, textAlign: 'left' }}>Предыдущие записи</h3>
-        
         {diaryEntries.length === 0 && <p style={{ opacity: 0.6 }}>Записей пока нет</p>}
-
         {diaryEntries.map(entry => (
           <div key={entry.id} className="habit-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
             <div style={{ fontSize: 13, opacity: 0.6 }}>{entry.date}</div>
@@ -270,7 +336,6 @@ function App() {
             {entry.q3 && <div><strong>Завтра:</strong> {entry.q3}</div>}
           </div>
         ))}
-
         <Nav />
       </div>
     )
@@ -281,7 +346,6 @@ function App() {
     return (
       <div className="app">
         <h2>Новая привычка</h2>
-
         <div style={{ marginBottom: 20 }}>
           <p style={{ fontSize: 14, marginBottom: 10, opacity: 0.7 }}>Готовые шаблоны:</p>
           <div className="options">
@@ -293,7 +357,6 @@ function App() {
             ))}
           </div>
         </div>
-
         <div className="form">
           <p style={{ fontSize: 14, opacity: 0.7 }}>Или создай свою:</p>
           <label>Название</label>
@@ -328,21 +391,14 @@ function App() {
   if (screen === 'chain') {
     const step = currentChain[currentStep]
     if (!step) return null
-
     return (
       <div className="app">
-        <div style={{ marginBottom: 8, opacity: 0.6, fontSize: 14 }}>
-          Шаг {currentStep + 1} из {currentChain.length}
-        </div>
+        <div style={{ marginBottom: 8, opacity: 0.6, fontSize: 14 }}>Шаг {currentStep + 1} из {currentChain.length}</div>
         <h2>{step.title}</h2>
         <p>{step.desc}</p>
         <button className="main-button" onClick={() => {
-          if (currentStep < currentChain.length - 1) {
-            setCurrentStep(currentStep + 1)
-          } else {
-            setScreen('main')
-            setCurrentStep(0)
-          }
+          if (currentStep < currentChain.length - 1) setCurrentStep(currentStep + 1)
+          else { setScreen('main'); setCurrentStep(0) }
         }}>
           {currentStep < currentChain.length - 1 ? 'Сделал' : 'Готово!'}
         </button>
