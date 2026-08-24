@@ -152,16 +152,34 @@ const addHabit = async (name, firstStep) => {
     return
   }
 
-  if (!user?.id) {
-    alert('Не удалось определить пользователя Telegram. Открой приложение через бота.')
+  // Берём пользователя прямо из Telegram
+  const tgUser = WebApp?.initDataUnsafe?.user || user
+
+  if (!tgUser?.id) {
+    alert('Не удалось получить данные пользователя Telegram')
+    console.log('WebApp:', WebApp)
+    console.log('initDataUnsafe:', WebApp?.initDataUnsafe)
     return
   }
 
   try {
+    // Сначала убедимся, что пользователь есть в базе
+    await supabase
+      .from('users')
+      .upsert({
+        telegram_id: tgUser.id,
+        first_name: tgUser.first_name,
+        last_name: tgUser.last_name || null,
+        username: tgUser.username || null,
+        language_code: tgUser.language_code || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'telegram_id' })
+
+    // Добавляем привычку
     const { data, error } = await supabase
       .from('habits')
       .insert({
-        telegram_id: user.id,
+        telegram_id: tgUser.id,
         name: name.trim(),
         first_step: firstStep.trim(),
         is_active: true
