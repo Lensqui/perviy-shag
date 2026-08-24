@@ -5,7 +5,7 @@ import { supabase } from './supabase'
 
 function App() {
   const [user, setUser] = useState(null)
-  const [screen, setScreen] = useState('loading')
+const [screen, setScreen] = useState('main')
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -61,72 +61,73 @@ function App() {
 
  // Загрузка данных
 useEffect(() => {
-  const init = async () => {
-    try {
+const init = async () => {
+  try {
+    if (WebApp && typeof WebApp.ready === 'function') {
       WebApp.ready()
       WebApp.expand()
+    }
 
-      const tgUser = WebApp.initDataUnsafe?.user
+    const tgUser = WebApp?.initDataUnsafe?.user
 
-      if (tgUser) {
-        setUser(tgUser)
+    if (tgUser) {
+      setUser(tgUser)
 
-        // Создаём или обновляем пользователя в Supabase
-        const { error } = await supabase
-          .from('users')
-          .upsert({
-            telegram_id: tgUser.id,
-            first_name: tgUser.first_name,
-            last_name: tgUser.last_name || null,
-            username: tgUser.username || null,
-            language_code: tgUser.language_code || null,
-            is_premium: tgUser.is_premium || false,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'telegram_id' })
+      // Создаём или обновляем пользователя в Supabase
+      const { error } = await supabase
+        .from('users')
+        .upsert({
+          telegram_id: tgUser.id,
+          first_name: tgUser.first_name,
+          last_name: tgUser.last_name || null,
+          username: tgUser.username || null,
+          language_code: tgUser.language_code || null,
+          is_premium: tgUser.is_premium || false,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'telegram_id' })
 
-        if (error) {
-          console.error('Ошибка сохранения пользователя:', error)
-        }
-
-        // Загружаем привычки пользователя
-        const { data: habitsData, error: habitsError } = await supabase
-          .from('habits')
-          .select('*')
-          .eq('telegram_id', tgUser.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-
-        if (habitsError) {
-          console.error('Ошибка загрузки привычек:', habitsError)
-        } else {
-          setHabits(habitsData || [])
-        }
-
-        // Загружаем серию
-        const { data: userData } = await supabase
-          .from('users')
-          .select('streak, last_active_date')
-          .eq('telegram_id', tgUser.id)
-          .single()
-
-        if (userData) {
-          setStreak(userData.streak || 0)
-        }
+      if (error) {
+        console.error('Ошибка сохранения пользователя:', error)
       }
-    } catch (e) {
-      console.log('Ошибка инициализации:', e)
-    }
 
-    // Онбординг
-    const onboardingDone = localStorage.getItem('onboardingDone')
-    if (!onboardingDone) {
-      setScreen('onboarding')
-    } else {
-      setScreen('main')
-    }
+      // Загружаем привычки
+      const { data: habitsData, error: habitsError } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('telegram_id', tgUser.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-    setIsLoaded(true)
+      if (habitsError) {
+        console.error('Ошибка загрузки привычек:', habitsError)
+      } else {
+        setHabits(habitsData || [])
+      }
+
+      // Загружаем серию
+      const { data: userData } = await supabase
+        .from('users')
+        .select('streak, last_active_date')
+        .eq('telegram_id', tgUser.id)
+        .single()
+
+      if (userData) {
+        setStreak(userData.streak || 0)
+      }
+    }
+  } catch (e) {
+    console.log('Ошибка инициализации:', e)
   }
+/*
+  const onboardingDone = localStorage.getItem('onboardingDone')
+  if (!onboardingDone) {
+    setScreen('onboarding')
+  } else {
+    setScreen('main')
+  }
+*/
+  setIsLoaded(true)
+}
 
   init()
 }, [])
