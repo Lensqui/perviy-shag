@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { WebApp } from '@twa-dev/sdk'
 import './App.css'
+import { supabase } from './supabase'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -58,49 +59,77 @@ function App() {
     { name: 'Ранний подъём', firstStep: 'Сразу встать с кровати' },
   ]
 
-  // Загрузка
-  useEffect(() => {
+ // Загрузка данных
+useEffect(() => {
+  const init = async () => {
     try {
       WebApp.ready()
       WebApp.expand()
-      if (WebApp.initDataUnsafe?.user) {
-        setUser(WebApp.initDataUnsafe.user)
+
+      const tgUser = WebApp.initDataUnsafe?.user
+
+      if (tgUser) {
+        setUser(tgUser)
+
+        // Создаём или обновляем пользователя в Supabase
+        const { error } = await supabase
+          .from('users')
+          .upsert({
+            telegram_id: tgUser.id,
+            first_name: tgUser.first_name,
+            last_name: tgUser.last_name || null,
+            username: tgUser.username || null,
+            language_code: tgUser.language_code || null,
+            is_premium: tgUser.is_premium || false,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'telegram_id' })
+
+        if (error) {
+          console.error('Ошибка сохранения пользователя:', error)
+        }
+
+        // Загружаем привычки пользователя
+        const { data: habitsData, error: habitsError } = await supabase
+          .from('habits')
+          .select('*')
+          .eq('telegram_id', tgUser.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+
+        if (habitsError) {
+          console.error('Ошибка загрузки привычек:', habitsError)
+        } else {
+          setHabits(habitsData || [])
+        }
+
+        // Загружаем серию
+        const { data: userData } = await supabase
+          .from('users')
+          .select('streak, last_active_date')
+          .eq('telegram_id', tgUser.id)
+          .single()
+
+        if (userData) {
+          setStreak(userData.streak || 0)
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.log('Ошибка инициализации:', e)
+    }
 
-    const savedHabits = localStorage.getItem('habits')
-    const savedStreak = localStorage.getItem('streak')
-    const savedDiary = localStorage.getItem('diary')
-    const lastDate = localStorage.getItem('lastDate')
+    // Онбординг
     const onboardingDone = localStorage.getItem('onboardingDone')
-    const today = new Date().toDateString()
-
-    let loadedHabits = []
-    if (savedHabits) {
-      try { loadedHabits = JSON.parse(savedHabits) } catch (e) {}
-    }
-
-    if (lastDate !== today) {
-      loadedHabits = loadedHabits.map(h => ({ ...h, doneToday: false }))
-      localStorage.setItem('lastDate', today)
-    }
-
-    setHabits(loadedHabits)
-    setStreak(savedStreak ? Number(savedStreak) : 0)
-    
-    if (savedDiary) {
-      try { setDiaryEntries(JSON.parse(savedDiary)) } catch (e) {}
-    }
-
-    setIsLoaded(true)
-
-    // Решаем, показывать онбординг или нет
     if (!onboardingDone) {
       setScreen('onboarding')
     } else {
       setScreen('main')
     }
-  }, [])
+
+    setIsLoaded(true)
+  }
+
+  init()
+}, [])
 
   // Сохранение
   useEffect(() => {
