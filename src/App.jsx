@@ -5,7 +5,7 @@ import { supabase } from './supabase'
 
 function App() {
   const [user, setUser] = useState(null)
-const [screen, setScreen] = useState('main')
+  const [screen, setScreen] = useState('loading')
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -118,14 +118,14 @@ const init = async () => {
   } catch (e) {
     console.log('Ошибка инициализации:', e)
   }
-/*
+
   const onboardingDone = localStorage.getItem('onboardingDone')
   if (!onboardingDone) {
     setScreen('onboarding')
   } else {
     setScreen('main')
   }
-*/
+
   setIsLoaded(true)
 }
 
@@ -146,19 +146,37 @@ const init = async () => {
     setScreen('main')
   }
 
-  const addHabit = (name, firstStep) => {
-    if (!name.trim() || !firstStep.trim()) return
-    const habit = { id: Date.now(), name, firstStep, doneToday: false }
-    setHabits(prev => [...prev, habit])
-    setNewHabitName('')
-    setNewFirstStep('')
-    if (screen === 'onboarding') {
-      finishOnboarding()
-    } else {
-      setScreen('main')
-    }
+  const addHabit = async (name, firstStep) => {
+  if (!name.trim() || !firstStep.trim() || !user) return
+
+  const { data, error } = await supabase
+    .from('habits')
+    .insert({
+      telegram_id: user.id,
+      name: name.trim(),
+      first_step: firstStep.trim(),
+      is_active: true
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Ошибка добавления привычки:', error)
+    alert('Не удалось добавить привычку')
+    return
   }
 
+  setHabits(prev => [data, ...prev])
+  setNewHabitName('')
+  setNewFirstStep('')
+  
+  if (screen === 'onboarding') {
+    localStorage.setItem('onboardingDone', 'true')
+    setScreen('main')
+  } else {
+    setScreen('main')
+  }
+}
   const toggleHabit = (id) => {
     setHabits(prev => {
       const updated = prev.map(h => h.id === id ? { ...h, doneToday: !h.doneToday } : h)
@@ -181,11 +199,21 @@ const init = async () => {
     })
   }
 
-  const deleteHabit = (id) => {
-    if (confirm('Удалить эту привычку?')) {
-      setHabits(prev => prev.filter(h => h.id !== id))
-    }
+const deleteHabit = async (id) => {
+  if (!confirm('Удалить эту привычку?')) return
+
+  const { error } = await supabase
+    .from('habits')
+    .update({ is_active: false })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Ошибка удаления:', error)
+    return
   }
+
+  setHabits(prev => prev.filter(h => h.id !== id))
+}
 
   const saveDiary = () => {
     if (!diaryAnswers.q1 && !diaryAnswers.q2 && !diaryAnswers.q3) return
