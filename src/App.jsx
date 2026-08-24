@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import WebApp from '@twa-dev/sdk'
 import './App.css'
 import { supabase } from './supabase'
-
+const tg = window.Telegram?.WebApp
 function App() {
   const [user, setUser] = useState(null)
   const [screen, setScreen] = useState('loading')
@@ -353,12 +353,10 @@ const deleteHabit = async (id) => {
   if (screen === 'main') {
     return (
       <div className="app">
-   <div style={{background: '#222', padding: 12, marginBottom: 16, fontSize: 12, borderRadius: 8, wordBreak: 'break-all', color: '#eee'}}>
-  <div><b>window.Telegram:</b> {window.Telegram ? 'есть' : 'НЕТ'}</div>
-  <div style={{marginTop: 6}}><b>WebApp:</b> {WebApp ? 'есть' : 'НЕТ'}</div>
-  <div style={{marginTop: 6}}><b>initData:</b> {WebApp?.initData || 'пусто'}</div>
-  <div style={{marginTop: 6}}><b>initDataUnsafe:</b> {JSON.stringify(WebApp?.initDataUnsafe || 'пусто')}</div>
-  <div style={{marginTop: 6}}><b>user state:</b> {JSON.stringify(user || 'пусто')}</div>
+<div style={{background: '#222', padding: 12, marginBottom: 16, fontSize: 12, borderRadius: 8, wordBreak: 'break-all', color: '#eee'}}>
+  <div><b>window.Telegram.WebApp:</b> {window.Telegram?.WebApp ? 'есть' : 'НЕТ'}</div>
+  <div style={{marginTop: 6}}><b>initData:</b> {window.Telegram?.WebApp?.initData || 'пусто'}</div>
+  <div style={{marginTop: 6}}><b>initDataUnsafe:</b> {JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe || 'пусто')}</div>
 </div>
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
