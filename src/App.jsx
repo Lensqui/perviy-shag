@@ -351,15 +351,15 @@ const deleteHabit = async (id) => {
 
   // ===== Главный экран =====
   if (screen === 'main') {
-    <div style={{background: '#333', padding: 12, marginBottom: 16, fontSize: 13, borderRadius: 8, wordBreak: 'break-all'}}>
-  <div><b>initDataUnsafe:</b> {JSON.stringify(WebApp?.initDataUnsafe || 'пусто')}</div>
-  <div style={{marginTop: 8}}><b>user из state:</b> {JSON.stringify(user || 'пусто')}</div>
-</div>
     return (
+      
       <div className="app">
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
-
+<div style={{background: '#333', padding: 12, marginBottom: 16, fontSize: 13, borderRadius: 8, wordBreak: 'break-all'}}>
+  <div><b>initDataUnsafe:</b> {JSON.stringify(WebApp?.initDataUnsafe || 'пусто')}</div>
+  <div style={{marginTop: 8}}><b>user из state:</b> {JSON.stringify(user || 'пусто')}</div>
+</div>
         <div className="user-info">
           {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
           {streak > 0 && (
