@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { WebApp } from '@twa-dev/sdk'
+import WebApp from '@twa-dev/sdk'
 import './App.css'
 import { supabase } from './supabase'
 
