@@ -61,75 +61,73 @@ function App() {
 
  // Загрузка данных
 useEffect(() => {
-  const init = async () => {
-    try {
-      const telegram = window.Telegram?.WebApp
-
-      if (telegram) {
-        telegram.ready()
-        telegram.expand()
-      }
-
-      const tgUser = telegram?.initDataUnsafe?.user
-
-      if (tgUser) {
-        setUser(tgUser)
-
-        // Создаём или обновляем пользователя в Supabase
-        const { error } = await supabase
-          .from('users')
-          .upsert({
-            telegram_id: tgUser.id,
-            first_name: tgUser.first_name,
-            last_name: tgUser.last_name || null,
-            username: tgUser.username || null,
-            language_code: tgUser.language_code || null,
-            is_premium: tgUser.is_premium || false,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'telegram_id' })
-
-        if (error) {
-          console.error('Ошибка сохранения пользователя:', error)
-        }
-
-        // Загружаем привычки
-        const { data: habitsData, error: habitsError } = await supabase
-          .from('habits')
-          .select('*')
-          .eq('telegram_id', tgUser.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-
-        if (habitsError) {
-          console.error('Ошибка загрузки привычек:', habitsError)
-        } else {
-          setHabits(habitsData || [])
-        }
-
-        // Загружаем серию
-        const { data: userData } = await supabase
-          .from('users')
-          .select('streak, last_active_date')
-          .eq('telegram_id', tgUser.id)
-          .single()
-
-        if (userData) {
-          setStreak(userData.streak || 0)
-        }
-      }
-    } catch (e) {
-      console.log('Ошибка инициализации:', e)
+const init = async () => {
+  try {
+    if (WebApp && typeof WebApp.ready === 'function') {
+      WebApp.ready()
+      WebApp.expand()
     }
 
-    const onboardingDone = localStorage.getItem('onboardingDone')
-    if (!onboardingDone) {
-      setScreen('onboarding')
-    } else {
-      setScreen('main')
-    }
+    const tgUser = WebApp?.initDataUnsafe?.user
 
-    setIsLoaded(true)
+    if (tgUser) {
+      setUser(tgUser)
+
+      // Создаём или обновляем пользователя в Supabase
+      const { error } = await supabase
+        .from('users')
+        .upsert({
+          telegram_id: tgUser.id,
+          first_name: tgUser.first_name,
+          last_name: tgUser.last_name || null,
+          username: tgUser.username || null,
+          language_code: tgUser.language_code || null,
+          is_premium: tgUser.is_premium || false,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'telegram_id' })
+
+      if (error) {
+        console.error('Ошибка сохранения пользователя:', error)
+      }
+
+      // Загружаем привычки
+      const { data: habitsData, error: habitsError } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('telegram_id', tgUser.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (habitsError) {
+        console.error('Ошибка загрузки привычек:', habitsError)
+      } else {
+        setHabits(habitsData || [])
+      }
+
+      // Загружаем серию
+      const { data: userData } = await supabase
+        .from('users')
+        .select('streak, last_active_date')
+        .eq('telegram_id', tgUser.id)
+        .single()
+
+      if (userData) {
+        setStreak(userData.streak || 0)
+      }
+    }
+  } catch (e) {
+    console.log('Ошибка инициализации:', e)
   }
+
+  const onboardingDone = localStorage.getItem('onboardingDone')
+  if (!onboardingDone) {
+    setScreen('onboarding')
+  } else {
+    setScreen('main')
+  }
+
+  setIsLoaded(true)
+}
 
   init()
 }, [])
@@ -154,13 +152,13 @@ const addHabit = async (name, firstStep) => {
     return
   }
 
-  const telegram = window.Telegram?.WebApp
-  const tgUser = telegram?.initDataUnsafe?.user || user
+  // Берём пользователя прямо из Telegram
+  const tgUser = WebApp?.initDataUnsafe?.user || user
 
   if (!tgUser?.id) {
     alert('Не удалось получить данные пользователя Telegram')
-    console.log('telegram:', telegram)
-    console.log('initDataUnsafe:', telegram?.initDataUnsafe)
+    console.log('WebApp:', WebApp)
+    console.log('initDataUnsafe:', WebApp?.initDataUnsafe)
     return
   }
 
