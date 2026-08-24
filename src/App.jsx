@@ -243,17 +243,24 @@ const addHabit = async (name, firstStep) => {
 const deleteHabit = async (id) => {
   if (!confirm('Удалить эту привычку?')) return
 
-  const { error } = await supabase
-    .from('habits')
-    .update({ is_active: false })
-    .eq('id', id)
+  try {
+    const { error } = await supabase
+      .from('habits')
+      .update({ is_active: false })
+      .eq('id', id)
 
-  if (error) {
-    console.error('Ошибка удаления:', error)
-    return
+    if (error) {
+      console.error('Ошибка удаления:', error)
+      alert('Не удалось удалить привычку: ' + error.message)
+      return
+    }
+
+    // Убираем из локального состояния
+    setHabits(prev => prev.filter(h => h.id !== id))
+  } catch (err) {
+    console.error(err)
+    alert('Произошла ошибка при удалении')
   }
-
-  setHabits(prev => prev.filter(h => h.id !== id))
 }
 
   const saveDiary = () => {
@@ -365,11 +372,6 @@ const deleteHabit = async (id) => {
   if (screen === 'main') {
     return (
       <div className="app">
-<div style={{background: '#222', padding: 12, marginBottom: 16, fontSize: 12, borderRadius: 8, wordBreak: 'break-all', color: '#eee'}}>
-  <div><b>window.Telegram.WebApp:</b> {window.Telegram?.WebApp ? 'есть' : 'НЕТ'}</div>
-  <div style={{marginTop: 6}}><b>initData:</b> {window.Telegram?.WebApp?.initData || 'пусто'}</div>
-  <div style={{marginTop: 6}}><b>initDataUnsafe:</b> {JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe || 'пусто')}</div>
-</div>
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
 
