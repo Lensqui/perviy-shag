@@ -146,35 +146,46 @@ const init = async () => {
     setScreen('main')
   }
 
-  const addHabit = async (name, firstStep) => {
-  if (!name.trim() || !firstStep.trim() || !user) return
-
-  const { data, error } = await supabase
-    .from('habits')
-    .insert({
-      telegram_id: user.id,
-      name: name.trim(),
-      first_step: firstStep.trim(),
-      is_active: true
-    })
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Ошибка добавления привычки:', error)
-    alert('Не удалось добавить привычку')
+const addHabit = async (name, firstStep) => {
+  if (!name?.trim() || !firstStep?.trim()) {
+    alert('Заполни название и первый шаг')
     return
   }
 
-  setHabits(prev => [data, ...prev])
-  setNewHabitName('')
-  setNewFirstStep('')
-  
-  if (screen === 'onboarding') {
-    localStorage.setItem('onboardingDone', 'true')
+  if (!user?.id) {
+    alert('Не удалось определить пользователя Telegram. Открой приложение через бота.')
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('habits')
+      .insert({
+        telegram_id: user.id,
+        name: name.trim(),
+        first_step: firstStep.trim(),
+        is_active: true
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Ошибка добавления привычки:', error)
+      alert('Ошибка: ' + error.message)
+      return
+    }
+
+    setHabits(prev => [data, ...prev])
+    setNewHabitName('')
+    setNewFirstStep('')
+    
+    if (screen === 'onboarding') {
+      localStorage.setItem('onboardingDone', 'true')
+    }
     setScreen('main')
-  } else {
-    setScreen('main')
+  } catch (err) {
+    console.error(err)
+    alert('Произошла ошибка при сохранении')
   }
 }
   const toggleHabit = (id) => {
@@ -349,7 +360,7 @@ const deleteHabit = async (id) => {
             <div key={habit.id} className="habit-card">
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{habit.name}</div>
-                <div style={{ fontSize: 14, opacity: 0.7, marginTop: 4 }}>{habit.firstStep}</div>
+           <div style={{ fontSize: 14, opacity: 0.7, marginTop: 4 }}>{habit.first_step}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className={`check-btn ${habit.doneToday ? 'done' : ''}`} onClick={() => toggleHabit(habit.id)}>
