@@ -60,8 +60,16 @@ function App() {
   ]
 
  // Загрузка данных
+// Загрузка данных
 useEffect(() => {
   const init = async () => {
+    // Ждём, пока Telegram полностью загрузится
+    let attempts = 0
+    while (!window.Telegram?.WebApp && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
+
     try {
       const telegram = window.Telegram?.WebApp
 
@@ -71,6 +79,9 @@ useEffect(() => {
       }
 
       const tgUser = telegram?.initDataUnsafe?.user
+
+      console.log('Telegram WebApp:', telegram)
+      console.log('User:', tgUser)
 
       if (tgUser) {
         setUser(tgUser)
@@ -133,7 +144,6 @@ useEffect(() => {
 
   init()
 }, [])
-
   // Сохранение
   useEffect(() => {
     if (isLoaded) {
