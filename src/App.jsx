@@ -403,7 +403,21 @@ const saveDiary = async () => {
     setCurrentStep(0)
     setScreen('chain')
   }
+const openDay = async (dateStr) => {
+  setSelectedDate(dateStr)
+  
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) return
 
+  const { data } = await supabase
+    .from('habit_logs')
+    .select('habit_id, habits(name, first_step)')
+    .eq('telegram_id', tgUser.id)
+    .eq('completed_at', dateStr)
+
+  setSelectedDayHabits(data || [])
+}
   // ===== Нижняя навигация =====
   const Nav = () => (
     <div className="nav">
@@ -721,7 +735,7 @@ if (showFullCalendar) {
   const month = currentMonth.getMonth()
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1 // понедельник = 0
+  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1
   const daysInMonth = lastDay.getDate()
 
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
@@ -736,20 +750,20 @@ if (showFullCalendar) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <button 
           onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
-          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer' }}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
         >
           ←
         </button>
-        <h2 style={{ margin: 0 }}>{monthNames[month]} {year}</h2>
+        <h2 style={{ margin: 0, fontSize: 20 }}>{monthNames[month]} {year}</h2>
         <button 
           onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
-          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer' }}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
         >
           →
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 10 }}>
         {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
           <div key={d} style={{ textAlign: 'center', fontSize: 12, opacity: 0.5 }}>{d}</div>
         ))}
@@ -762,41 +776,65 @@ if (showFullCalendar) {
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
           const isActive = streakDays.includes(dateStr)
           const isToday = dateStr === new Date().toISOString().slice(0, 10)
+          const isSelected = selectedDate === dateStr
 
           return (
             <div 
               key={dateStr}
+              onClick={() => openDay(dateStr)}
               style={{
-                height: 40,
-                borderRadius: 10,
+                height: 48,
+                borderRadius: 12,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 14,
-                fontWeight: isToday ? 700 : 500,
-                background: isActive ? '#22c55e' : 'rgba(255,255,255,0.06)',
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
-                border: isToday ? '2px solid #60a5fa' : 'none'
+                fontWeight: isToday || isSelected ? 700 : 500,
+                background: isSelected ? 'rgba(139, 92, 246, 0.3)' : isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.04)',
+                color: isActive ? '#4ade80' : 'rgba(255,255,255,0.8)',
+                border: isToday ? '2px solid #a78bfa' : isSelected ? '1px solid #a78bfa' : '1px solid transparent',
+                cursor: 'pointer',
+                gap: 3
               }}
             >
               {day}
+              {isActive && (
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+              )}
             </div>
           )
         })}
       </div>
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 16, fontSize: 13, opacity: 0.7 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 4, background: '#22c55e' }} />
-          Был стрик
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.1)' }} />
-          Нет активности
-        </div>
-      </div>
+      {/* Выбранный день */}
+      {selectedDate && (
+        <div style={{ marginTop: 24 }}>
+          <h3 style={{ marginBottom: 12, fontSize: 16 }}>
+            {selectedDate}
+          </h3>
 
-      <button className="back-button" onClick={() => setShowFullCalendar(false)} style={{ marginTop: 24 }}>
+          {selectedDayHabits.length === 0 ? (
+            <p style={{ opacity: 0.6, fontSize: 14 }}>В этот день привычки не отмечались</p>
+          ) : (
+            selectedDayHabits.map((item, idx) => (
+              <div key={idx} className="habit-card" style={{ marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{item.habits?.name || 'Привычка'}</div>
+                  <div style={{ fontSize: 13, opacity: 0.7 }}>{item.habits?.first_step}</div>
+                </div>
+                <div style={{ color: '#22c55e', fontSize: 18 }}>✓</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      <button className="back-button" onClick={() => {
+        setShowFullCalendar(false)
+        setSelectedDate(null)
+        setSelectedDayHabits([])
+      }} style={{ marginTop: 24 }}>
         ← Назад
       </button>
     </div>
