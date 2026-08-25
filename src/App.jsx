@@ -614,52 +614,96 @@ if (showFullCalendar) {
       </div>
     </div>
 
-    {/* Список привычек за день */}
-    {selectedDayHabits.length === 0 ? (
-      <p style={{ opacity: 0.6, fontSize: 14, textAlign: 'center' }}>
-        В этот день привычки не отмечались
-      </p>
-    ) : (
-      selectedDayHabits.map((item, idx) => (
-        <div 
-          key={idx} 
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 14px',
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: 14,
-            marginBottom: 8,
-            borderLeft: '3px solid #22c55e'
-          }}
-        >
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'rgba(34,197,94,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18
-          }}>
-            ✓
-          </div>
-          
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>
-              {item.habits?.name || 'Привычка'}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
-              {item.habits?.first_step || ''}
-            </div>
-          </div>
+{selectedDayHabits.length === 0 ? (
+  <p style={{ opacity: 0.6, fontSize: 14, textAlign: 'center' }}>
+    В этот день привычки не отмечались
+  </p>
+) : (
+  selectedDayHabits.map((item, idx) => {
+    // Подбираем иконку по названию привычки
+    const name = (item.habits?.name || '').toLowerCase()
+    let icon = '⚡'
+    let color = '#a78bfa'
 
-          <div style={{ color: '#22c55e', fontSize: 20 }}>✓</div>
+    if (name.includes('работ') || name.includes('проект') || name.includes('ноутбук')) {
+      icon = '💻'
+      color = '#60a5fa'
+    } else if (name.includes('чтение') || name.includes('книг')) {
+      icon = '📖'
+      color = '#c084fc'
+    } else if (name.includes('тренир') || name.includes('присед') || name.includes('физич') || name.includes('спорт')) {
+      icon = '💪'
+      color = '#34d399'
+    } else if (name.includes('медита') || name.includes('дыхан')) {
+      icon = '🧘'
+      color = '#a78bfa'
+    } else if (name.includes('порядок') || name.includes('убор')) {
+      icon = '✨'
+      color = '#fbbf24'
+    } else if (name.includes('телефон') || name.includes('экран')) {
+      icon = '📱'
+      color = '#f472b6'
+    } else if (name.includes('подъём') || name.includes('утр')) {
+      icon = '🌅'
+      color = '#fb923c'
+    } else if (name.includes('вод')) {
+      icon = '💧'
+      color = '#38bdf8'
+    }
+
+    return (
+      <div 
+        key={idx} 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '14px 16px',
+          background: 'rgba(255,255,255,0.04)',
+          borderRadius: 16,
+          marginBottom: 10,
+          borderLeft: `3px solid ${color}`
+        }}
+      >
+        <div style={{
+          width: 42,
+          height: 42,
+          borderRadius: 14,
+          background: `${color}22`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 22
+        }}>
+          {icon}
         </div>
-      ))
-    )}
+        
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>
+            {item.habits?.name || 'Привычка'}
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.55, marginTop: 3 }}>
+            {item.habits?.first_step || ''}
+          </div>
+        </div>
+
+        <div style={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          background: 'rgba(34,197,94,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#4ade80',
+          fontSize: 16
+        }}>
+          ✓
+        </div>
+      </div>
+    )
+  })
+)}
   </div>
 )}
 
