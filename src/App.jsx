@@ -477,43 +477,71 @@ if (showFullCalendar) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-        {days.map((day, idx) => {
-          if (!day) return <div key={`empty-${idx}`} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+  {days.map((day, idx) => {
+    if (!day) return <div key={`empty-${idx}`} />
 
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-          const isActive = streakDays.includes(dateStr)
-          const isToday = dateStr === new Date().toISOString().slice(0, 10)
-          const isSelected = selectedDate === dateStr
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const isActive = streakDays.includes(dateStr)
+    const isToday = dateStr === new Date().toISOString().slice(0, 10)
+    const isSelected = selectedDate === dateStr
 
-          return (
-            <div 
-              key={dateStr}
-              onClick={() => openDay(dateStr)}
-              style={{
-                height: 48,
-                borderRadius: 12,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: isToday || isSelected ? 700 : 500,
-                background: isSelected ? 'rgba(139, 92, 246, 0.3)' : isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.04)',
-                color: isActive ? '#4ade80' : 'rgba(255,255,255,0.8)',
-                border: isToday ? '2px solid #a78bfa' : isSelected ? '1px solid #a78bfa' : '1px solid transparent',
-                cursor: 'pointer',
-                gap: 3
-              }}
-            >
-              {day}
-              {isActive && (
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
-              )}
-            </div>
-          )
-        })}
+    // Определяем, относится ли день к текущей неделе
+    const today = new Date()
+    const current = new Date(dateStr)
+    const startOfWeek = new Date(today)
+    startOfWeek.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1))
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    const isCurrentWeek = current >= startOfWeek && current <= endOfWeek
+
+    return (
+      <div 
+        key={dateStr}
+        onClick={() => openDay(dateStr)}
+        style={{
+          height: 54,
+          borderRadius: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 14,
+          fontWeight: isToday || isSelected ? 700 : 500,
+          background: isSelected 
+            ? 'rgba(139, 92, 246, 0.35)' 
+            : isCurrentWeek 
+              ? 'rgba(139, 92, 246, 0.08)' 
+              : isActive 
+                ? 'rgba(34, 197, 94, 0.12)' 
+                : 'rgba(255,255,255,0.03)',
+          color: isActive ? '#4ade80' : 'rgba(255,255,255,0.8)',
+          border: isToday 
+            ? '2px solid #a78bfa' 
+            : isSelected 
+              ? '1px solid #a78bfa' 
+              : '1px solid transparent',
+          cursor: 'pointer',
+          gap: 4
+        }}
+      >
+        <div>{day}</div>
+        
+        {/* Точки статуса */}
+        <div style={{ display: 'flex', gap: 3, height: 6 }}>
+          {isActive ? (
+            <>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+            </>
+          ) : (
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
+          )}
+        </div>
       </div>
+    )
+  })}
+</div>
 
       {/* Выбранный день */}
       {selectedDate && (
@@ -538,7 +566,8 @@ if (showFullCalendar) {
         </div>
       )}
 
-      <button className="back-button" onClick={() => {
+      <button className="back-button" 
+      onClick={() => {
         setShowFullCalendar(false)
         setSelectedDate(null)
         setSelectedDayHabits([])
