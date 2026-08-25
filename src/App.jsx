@@ -205,14 +205,16 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     alert('Заполни название и первый шаг')
     return
   }
-const alreadyExists = habits.some(h => 
-  h.name.trim().toLowerCase() === name.trim().toLowerCase()
-)
 
-if (alreadyExists) {
-  alert('Такая привычка уже есть')
-  return
-}
+  // Защита от дублей
+  const alreadyExists = habits.some(h => 
+    h.name.trim().toLowerCase() === name.trim().toLowerCase()
+  )
+  if (alreadyExists) {
+    alert('Такая привычка уже есть')
+    return
+  }
+
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
 
@@ -222,6 +224,7 @@ if (alreadyExists) {
   }
 
   try {
+    // Обновляем пользователя
     await supabase
       .from('users')
       .upsert({
@@ -233,6 +236,7 @@ if (alreadyExists) {
         updated_at: new Date().toISOString()
       }, { onConflict: 'telegram_id' })
 
+    // Добавляем привычку
     const { data, error } = await supabase
       .from('habits')
       .insert({
