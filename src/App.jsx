@@ -543,28 +543,125 @@ if (showFullCalendar) {
   })}
 </div>
 
-      {/* Выбранный день */}
-      {selectedDate && (
-        <div style={{ marginTop: 24 }}>
-          <h3 style={{ marginBottom: 12, fontSize: 16 }}>
+  {selectedDate && (
+  <div style={{ marginTop: 28 }}>
+    {/* Заголовок дня */}
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center',
+      marginBottom: 16 
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: 'rgba(139, 92, 246, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 18
+        }}>
+          📅
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 16 }}>
+            {new Date(selectedDate).toLocaleDateString('ru-RU', { weekday: 'long' })}
+          </div>
+          <div style={{ fontSize: 13, opacity: 0.6 }}>
             {selectedDate}
-          </h3>
-
-          {selectedDayHabits.length === 0 ? (
-            <p style={{ opacity: 0.6, fontSize: 14 }}>В этот день привычки не отмечались</p>
-          ) : (
-            selectedDayHabits.map((item, idx) => (
-              <div key={idx} className="habit-card" style={{ marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{item.habits?.name || 'Привычка'}</div>
-                  <div style={{ fontSize: 13, opacity: 0.7 }}>{item.habits?.first_step}</div>
-                </div>
-                <div style={{ color: '#22c55e', fontSize: 18 }}>✓</div>
-              </div>
-            ))
-          )}
+          </div>
+        </div>
+      </div>
+      {selectedDate === new Date().toISOString().slice(0, 10) && (
+        <div style={{
+          background: 'rgba(139, 92, 246, 0.15)',
+          color: '#c4b5fd',
+          fontSize: 12,
+          padding: '4px 10px',
+          borderRadius: 20
+        }}>
+          Сегодня
         </div>
       )}
+    </div>
+
+    {/* Сводка */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: 8,
+      marginBottom: 20
+    }}>
+      <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(34,197,94,0.1)', borderRadius: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>
+          {selectedDayHabits.length}
+        </div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Выполнено</div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(139,92,246,0.1)', borderRadius: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#a78bfa' }}>0</div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Частично</div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(249,115,22,0.1)', borderRadius: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>0</div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(59,130,246,0.1)', borderRadius: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>—</div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Фокус</div>
+      </div>
+    </div>
+
+    {/* Список привычек за день */}
+    {selectedDayHabits.length === 0 ? (
+      <p style={{ opacity: 0.6, fontSize: 14, textAlign: 'center' }}>
+        В этот день привычки не отмечались
+      </p>
+    ) : (
+      selectedDayHabits.map((item, idx) => (
+        <div 
+          key={idx} 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 14px',
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 14,
+            marginBottom: 8,
+            borderLeft: '3px solid #22c55e'
+          }}
+        >
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'rgba(34,197,94,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 18
+          }}>
+            ✓
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>
+              {item.habits?.name || 'Привычка'}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
+              {item.habits?.first_step || ''}
+            </div>
+          </div>
+
+          <div style={{ color: '#22c55e', fontSize: 20 }}>✓</div>
+        </div>
+      ))
+    )}
+  </div>
+)}
 
       <button className="back-button" 
       onClick={() => {
