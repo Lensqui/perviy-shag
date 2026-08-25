@@ -7,6 +7,8 @@ function App() {
   const [user, setUser] = useState(null)
   const [streakDays, setStreakDays] = useState([])
   const [screen, setScreen] = useState('loading')
+  const [showFullCalendar, setShowFullCalendar] = useState(false)
+const [currentMonth, setCurrentMonth] = useState(new Date())
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -487,8 +489,8 @@ const saveDiary = async () => {
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
 
-     <div className="user-info">
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="user-info">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
     <div>
       {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
     </div>
@@ -506,52 +508,70 @@ const saveDiary = async () => {
         color: '#fb923c'
       }}>
         <span style={{ fontSize: 18 }}>🔥</span>
-        {streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}
+        {streak}
       </div>
     )}
   </div>
 
-  {/* Календарь стрика */}
+  {/* Компактный календарь за 14 дней */}
   <div style={{ 
-    display: 'flex', 
-    gap: 5, 
-    marginTop: 14, 
-    justifyContent: 'space-between' 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(7, 1fr)', 
+    gap: 6,
+    marginBottom: 8
   }}>
     {Array.from({ length: 14 }).map((_, i) => {
       const d = new Date()
       d.setDate(d.getDate() - (13 - i))
       const dateStr = d.toISOString().slice(0, 10)
+      const dayNum = d.getDate()
       const isActive = streakDays.includes(dateStr)
       const isToday = i === 13
 
       return (
         <div 
           key={dateStr}
-          title={dateStr}
           style={{
-            width: 18,
-            height: 18,
-            borderRadius: 5,
-            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.1)',
-            border: isToday ? '2px solid #60a5fa' : 'none',
-            opacity: isActive ? 1 : 0.5
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 3
           }}
-        />
+        >
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 13,
+            fontWeight: isToday ? 700 : 500,
+            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.08)',
+            color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
+            border: isToday ? '2px solid #60a5fa' : 'none'
+          }}>
+            {dayNum}
+          </div>
+        </div>
       )
     })}
   </div>
-  
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    marginTop: 6, 
-    fontSize: 11, 
-    opacity: 0.5 
-  }}>
-    <span>14 дней назад</span>
-    <span>Сегодня</span>
-  </div>
+
+  <button 
+    onClick={() => setShowFullCalendar(true)}
+    style={{
+      background: 'transparent',
+      border: 'none',
+      color: '#60a5fa',
+      fontSize: 13,
+      cursor: 'pointer',
+      padding: 0,
+      marginTop: 4
+    }}
+  >
+    Смотреть весь календарь →
+  </button>
 </div>
 
         <button className="main-button" onClick={() => setScreen('lazy')}>
@@ -684,7 +704,93 @@ const saveDiary = async () => {
       </div>
     )
   }
+// ===== Полный календарь =====
+if (showFullCalendar) {
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1 // понедельник = 0
+  const daysInMonth = lastDay.getDate()
 
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+
+  const days = []
+  for (let i = 0; i < startDay; i++) days.push(null)
+  for (let i = 1; i <= daysInMonth; i++) days.push(i)
+
+  return (
+    <div className="app">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <button 
+          onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer' }}
+        >
+          ←
+        </button>
+        <h2 style={{ margin: 0 }}>{monthNames[month]} {year}</h2>
+        <button 
+          onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer' }}
+        >
+          →
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 12, opacity: 0.5 }}>{d}</div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+        {days.map((day, idx) => {
+          if (!day) return <div key={`empty-${idx}`} />
+
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const isActive = streakDays.includes(dateStr)
+          const isToday = dateStr === new Date().toISOString().slice(0, 10)
+
+          return (
+            <div 
+              key={dateStr}
+              style={{
+                height: 40,
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                fontWeight: isToday ? 700 : 500,
+                background: isActive ? '#22c55e' : 'rgba(255,255,255,0.06)',
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
+                border: isToday ? '2px solid #60a5fa' : 'none'
+              }}
+            >
+              {day}
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ marginTop: 24, display: 'flex', gap: 16, fontSize: 13, opacity: 0.7 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 14, height: 14, borderRadius: 4, background: '#22c55e' }} />
+          Был стрик
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.1)' }} />
+          Нет активности
+        </div>
+      </div>
+
+      <button className="back-button" onClick={() => setShowFullCalendar(false)} style={{ marginTop: 24 }}>
+        ← Назад
+      </button>
+    </div>
+  )
+}
   return null
 }
 
