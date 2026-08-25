@@ -63,10 +63,8 @@ const [currentMonth, setCurrentMonth] = useState(new Date())
   ]
 
  // Загрузка данных
-// Загрузка данных
 useEffect(() => {
   const init = async () => {
-    // Ждём, пока Telegram полностью загрузится
     let attempts = 0
     while (!window.Telegram?.WebApp && attempts < 20) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -105,6 +103,17 @@ useEffect(() => {
         if (error) {
           console.error('Ошибка сохранения пользователя:', error)
         }
+const thirtyDaysAgo = new Date()
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+const { data: activityLogs } = await supabase
+  .from('habit_logs')
+  .select('completed_at')
+  .eq('telegram_id', tgUser.id)
+  .gte('completed_at', thirtyDaysAgo.toISOString().slice(0, 10))
+
+const activeDates = new Set((activityLogs || []).map(l => l.completed_at))
+setStreakDays(Array.from(activeDates))
 
 const { data: habitsData, error: habitsError } = await supabase
   .from('habits')
@@ -489,8 +498,8 @@ const saveDiary = async () => {
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
 
-    <div className="user-info">
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+  <div className="user-info">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
     <div>
       {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
     </div>
@@ -513,46 +522,47 @@ const saveDiary = async () => {
     )}
   </div>
 
-  {/* Компактный календарь за 14 дней */}
-  <div style={{ 
-    display: 'grid', 
-    gridTemplateColumns: 'repeat(7, 1fr)', 
-    gap: 6,
-    marginBottom: 8
-  }}>
-    {Array.from({ length: 14 }).map((_, i) => {
+  {/* Красивая неделя */}
+  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+    {Array.from({ length: 7 }).map((_, i) => {
       const d = new Date()
-      d.setDate(d.getDate() - (13 - i))
+      d.setDate(d.getDate() - (6 - i))
       const dateStr = d.toISOString().slice(0, 10)
       const dayNum = d.getDate()
+      const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+      const dayName = dayNames[d.getDay()]
       const isActive = streakDays.includes(dateStr)
-      const isToday = i === 13
+      const isToday = dateStr === new Date().toISOString().slice(0, 10)
 
       return (
         <div 
           key={dateStr}
           style={{
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 3
+            gap: 6,
+            padding: '10px 4px',
+            borderRadius: 14,
+            background: isToday ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.04)',
+            border: isToday ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent'
           }}
         >
+          <div style={{ fontSize: 11, opacity: 0.6 }}>{dayName}</div>
           <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
+            fontSize: 16,
             fontWeight: isToday ? 700 : 500,
-            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.08)',
-            color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
-            border: isToday ? '2px solid #60a5fa' : 'none'
+            color: isToday ? '#c4b5fd' : '#fff'
           }}>
             {dayNum}
           </div>
+          <div style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.15)'
+          }} />
         </div>
       )
     })}
@@ -563,14 +573,15 @@ const saveDiary = async () => {
     style={{
       background: 'transparent',
       border: 'none',
-      color: '#60a5fa',
+      color: '#a78bfa',
       fontSize: 13,
       cursor: 'pointer',
-      padding: 0,
-      marginTop: 4
+      padding: '12px 0 0',
+      width: '100%',
+      textAlign: 'center'
     }}
   >
-    Смотреть весь календарь →
+    Открыть полный календарь →
   </button>
 </div>
 
