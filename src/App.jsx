@@ -103,19 +103,35 @@ useEffect(() => {
           console.error('Ошибка сохранения пользователя:', error)
         }
 
-        // Загружаем привычки
-        const { data: habitsData, error: habitsError } = await supabase
-          .from('habits')
-          .select('*')
-          .eq('telegram_id', tgUser.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
+     // Загружаем привычки
+const { data: habitsData, error: habitsError } = await supabase
+  .from('habits')
+  .select('*')
+  .eq('telegram_id', tgUser.id)
+  .eq('is_active', true)
+  .order('created_at', { ascending: false })
 
-        if (habitsError) {
-          console.error('Ошибка загрузки привычек:', habitsError)
-        } else {
-          setHabits(habitsData || [])
-        }
+if (habitsError) {
+  console.error('Ошибка загрузки привычек:', habitsError)
+} else {
+  // Проверяем, какие привычки уже выполнены сегодня
+  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+
+  const { data: logs } = await supabase
+    .from('habit_logs')
+    .select('habit_id')
+    .eq('telegram_id', tgUser.id)
+    .eq('completed_at', today)
+
+  const doneIds = new Set((logs || []).map(l => l.habit_id))
+
+  const habitsWithStatus = (habitsData || []).map(h => ({
+    ...h,
+    doneToday: doneIds.has(h.id)
+  }))
+
+  setHabits(habitsWithStatus)
+}
 
         // Загружаем серию
         const { data: userData } = await supabase
@@ -175,7 +191,6 @@ const addHabit = async (name, firstStep) => {
   }
 
   try {
-    // Сначала убедимся, что пользователь есть в базе
     await supabase
       .from('users')
       .upsert({
@@ -187,7 +202,7 @@ const addHabit = async (name, firstStep) => {
         updated_at: new Date().toISOString()
       }, { onConflict: 'telegram_id' })
 
-    // Добавляем привычку
+
     const { data, error } = await supabase
       .from('habits')
       .insert({
@@ -218,27 +233,74 @@ const addHabit = async (name, firstStep) => {
     alert('Произошла ошибка при сохранении')
   }
 }
-  const toggleHabit = (id) => {
-    setHabits(prev => {
-      const updated = prev.map(h => h.id === id ? { ...h, doneToday: !h.doneToday } : h)
-      const hasDone = updated.some(h => h.doneToday)
-      if (hasDone) {
-        const today = new Date().toDateString()
-        const lastActive = localStorage.getItem('lastActiveDate')
-        if (lastActive !== today) {
-          const yesterday = new Date()
-          yesterday.setDate(yesterday.getDate() - 1)
-          if (lastActive === yesterday.toDateString()) {
-            setStreak(s => s + 1)
-          } else {
-            setStreak(1)
-          }
-          localStorage.setItem('lastActiveDate', today)
-        }
+ const toggleHabit = async (id) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) return
+
+  const habit = habits.find(h => h.id === id)
+  if (!habit) return
+
+  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+
+  try {
+    if (habit.doneToday) {
+      const { error } = await supabase
+        .from('habit_logs')
+        .delete()
+        .eq('habit_id', id)
+        .eq('completed_at', today)
+
+      if (error) {
+        console.error('Ошибка снятия отметки:', error)
+        return
       }
-      return updated
-    })
+      setHabits(prev => prev.map(h => h.id === id ? { ...h, doneToday: false } : h))
+    } else {
+
+      const { error } = await supabase
+        .from('habit_logs')
+        .insert({
+          habit_id: id,
+          telegram_id: tgUser.id,
+          completed_at: today
+        })
+
+      if (error) {
+        console.error('Ошибка установки отметки:', error)
+        alert('Не удалось отметить: ' + error.message)
+        return
+      }
+
+      setHabits(prev => prev.map(h => h.id === id ? { ...h, doneToday: true } : h))
+
+      const lastActive = localStorage.getItem('lastActiveDate')
+      const todayStr = new Date().toDateString()
+
+      if (lastActive !== todayStr) {
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+
+        if (lastActive === yesterday.toDateString()) {
+          setStreak(s => s + 1)
+        } else {
+          setStreak(1)
+        }
+        localStorage.setItem('lastActiveDate', todayStr)
+
+        await supabase
+          .from('users')
+          .update({ 
+            streak: lastActive === yesterday.toDateString() ? streak + 1 : 1,
+            last_active_date: today 
+          })
+          .eq('telegram_id', tgUser.id)
+      }
+    }
+  } catch (err) {
+    console.error(err)
   }
+}
 
 const deleteHabit = async (id) => {
   if (!confirm('Удалить эту привычку?')) return
@@ -255,7 +317,6 @@ const deleteHabit = async (id) => {
       return
     }
 
-    // Убираем из локального состояния
     setHabits(prev => prev.filter(h => h.id !== id))
   } catch (err) {
     console.error(err)
