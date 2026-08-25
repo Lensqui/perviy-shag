@@ -206,7 +206,6 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     return
   }
 
-  // Защита от дублей
   const alreadyExists = habits.some(h => 
     h.name.trim().toLowerCase() === name.trim().toLowerCase()
   )
@@ -224,7 +223,6 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
   }
 
   try {
-    // Обновляем пользователя
     await supabase
       .from('users')
       .upsert({
@@ -236,7 +234,6 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
         updated_at: new Date().toISOString()
       }, { onConflict: 'telegram_id' })
 
-    // Добавляем привычку
     const { data, error } = await supabase
       .from('habits')
       .insert({
@@ -263,61 +260,6 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     setNewDuration(15)
     setNewTime('')
     setNewPriority('normal')
-    
-    if (screen === 'onboarding') {
-      localStorage.setItem('onboardingDone', 'true')
-    }
-    setScreen('main')
-  } catch (err) {
-    console.error(err)
-    alert('Произошла ошибка при сохранении')
-  }
-
-// Загружаем дни активности за последние 21 день (стрики)
-const twentyOneDaysAgo = new Date()
-twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 20)
-
-const { data: activityLogs } = await supabase
-  .from('habit_logs')
-  .select('completed_at')
-  .eq('telegram_id', tgUser.id)
-  .gte('completed_at', twentyOneDaysAgo.toISOString().slice(0, 10))
-
-const activeDates = new Set((activityLogs || []).map(l => l.completed_at))
-setStreakDays(Array.from(activeDates))
-  try {
-    await supabase
-      .from('users')
-      .upsert({
-        telegram_id: tgUser.id,
-        first_name: tgUser.first_name,
-        last_name: tgUser.last_name || null,
-        username: tgUser.username || null,
-        language_code: tgUser.language_code || null,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'telegram_id' })
-
-
-    const { data, error } = await supabase
-      .from('habits')
-      .insert({
-        telegram_id: tgUser.id,
-        name: name.trim(),
-        first_step: firstStep.trim(),
-        is_active: true
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Ошибка добавления привычки:', error)
-      alert('Ошибка: ' + error.message)
-      return
-    }
-
-    setHabits(prev => [data, ...prev])
-    setNewHabitName('')
-    setNewFirstStep('')
     
     if (screen === 'onboarding') {
       localStorage.setItem('onboardingDone', 'true')
