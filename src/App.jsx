@@ -536,7 +536,9 @@ const saveDiary = async () => {
         {diaryEntries.length === 0 && <p style={{ opacity: 0.6 }}>Записей пока нет</p>}
         {diaryEntries.map(entry => (
           <div key={entry.id} className="habit-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-            <div style={{ fontSize: 13, opacity: 0.6 }}>{entry.date}</div>
+    <div style={{ fontSize: 13, opacity: 0.6 }}>
+    {entry.entry_date || entry.created_at?.slice(0, 10)}
+</div>
             {entry.q1 && <div><strong>Мешало:</strong> {entry.q1}</div>}
             {entry.q2 && <div><strong>Сделал:</strong> {entry.q2}</div>}
             {entry.q3 && <div><strong>Завтра:</strong> {entry.q3}</div>}
