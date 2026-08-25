@@ -205,7 +205,14 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     alert('Заполни название и первый шаг')
     return
   }
+const alreadyExists = habits.some(h => 
+  h.name.trim().toLowerCase() === name.trim().toLowerCase()
+)
 
+if (alreadyExists) {
+  alert('Такая привычка уже есть')
+  return
+}
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
 
@@ -946,7 +953,7 @@ if (showFullCalendar) {
 
           {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
 
-    {habits.map(habit => {
+   {habits.map(habit => {
   const name = (habit.name || '').toLowerCase()
   let icon = '⚡'
   let color = '#a78bfa'
@@ -971,9 +978,11 @@ if (showFullCalendar) {
 
   const durationText = habit.duration_minutes 
     ? (habit.duration_minutes >= 60 
-        ? `${Math.floor(habit.duration_minutes / 60)} ч` 
-        : `${habit.duration_minutes} мин`)
+        ? `${Math.floor(habit.duration_minutes / 60)}ч` 
+        : `${habit.duration_minutes}м`)
     : null
+
+  const timeText = habit.planned_time ? habit.planned_time.slice(0, 5) : null
 
   return (
     <div 
@@ -984,58 +993,108 @@ if (showFullCalendar) {
         gap: 14,
         padding: '14px 16px',
         background: 'rgba(255,255,255,0.04)',
-        borderRadius: 16,
-        marginBottom: 10,
-        borderLeft: `3px solid ${color}`
+        borderRadius: 18,
+        marginBottom: 12,
+        borderLeft: `3px solid ${color}`,
+        position: 'relative'
       }}
     >
       {/* Иконка */}
       <div style={{
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         borderRadius: 14,
         background: `${color}22`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 22
+        fontSize: 22,
+        flexShrink: 0
       }}>
         {icon}
       </div>
 
       {/* Контент */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>{habit.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <div style={{ 
+            fontWeight: 600, 
+            fontSize: 15,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {habit.name}
+          </div>
+
+          {/* Приоритет */}
           {habit.priority === 'high' && (
-            <span style={{ fontSize: 14 }}>🚩</span>
+            <div style={{
+              fontSize: 11,
+              background: 'rgba(239, 68, 68, 0.15)',
+              color: '#f87171',
+              padding: '2px 8px',
+              borderRadius: 20,
+              fontWeight: 600
+            }}>
+              Важно
+            </div>
           )}
         </div>
         
-        <div style={{ fontSize: 13, opacity: 0.55, marginTop: 3 }}>
+        <div style={{ 
+          fontSize: 13, 
+          opacity: 0.5, 
+          marginBottom: 8,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
           {habit.first_step}
         </div>
 
         {/* Время и длительность */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 12, opacity: 0.7 }}>
-          {habit.planned_time && (
-            <span>🕐 {habit.planned_time?.slice(0, 5)}</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {timeText && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              background: 'rgba(96, 165, 250, 0.12)',
+              color: '#60a5fa',
+              padding: '3px 9px',
+              borderRadius: 20
+            }}>
+              🕐 {timeText}
+            </div>
           )}
           {durationText && (
-            <span>⏱ {durationText}</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              background: 'rgba(167, 139, 250, 0.12)',
+              color: '#a78bfa',
+              padding: '3px 9px',
+              borderRadius: 20
+            }}>
+              ⏱ {durationText}
+            </div>
           )}
         </div>
       </div>
 
       {/* Кнопки */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <button 
           onClick={() => toggleHabit(habit.id)}
           style={{
-            width: 32,
-            height: 32,
+            width: 34,
+            height: 34,
             borderRadius: '50%',
-            border: habit.doneToday ? 'none' : '2px solid rgba(255,255,255,0.25)',
+            border: habit.doneToday ? 'none' : '2px solid rgba(255,255,255,0.2)',
             background: habit.doneToday ? '#22c55e' : 'transparent',
             color: '#fff',
             fontSize: 16,
@@ -1053,10 +1112,11 @@ if (showFullCalendar) {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#ff3b30',
+            color: 'rgba(255,59,48,0.7)',
             fontSize: 20,
             cursor: 'pointer',
-            padding: 4
+            padding: 4,
+            lineHeight: 1
           }}
         >
           ×
