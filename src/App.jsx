@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 const tg = window.Telegram?.WebApp
 function App() {
   const [user, setUser] = useState(null)
+  const [streakDays, setStreakDays] = useState([])
   const [screen, setScreen] = useState('loading')
   const [currentStep, setCurrentStep] = useState(0)
   const [habits, setHabits] = useState([])
@@ -198,7 +199,18 @@ const addHabit = async (name, firstStep) => {
     console.log('initDataUnsafe:', telegram?.initDataUnsafe)
     return
   }
+// Загружаем дни активности за последние 21 день (стрики)
+const twentyOneDaysAgo = new Date()
+twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 20)
 
+const { data: activityLogs } = await supabase
+  .from('habit_logs')
+  .select('completed_at')
+  .eq('telegram_id', tgUser.id)
+  .gte('completed_at', twentyOneDaysAgo.toISOString().slice(0, 10))
+
+const activeDates = new Set((activityLogs || []).map(l => l.completed_at))
+setStreakDays(Array.from(activeDates))
   try {
     await supabase
       .from('users')
@@ -475,14 +487,72 @@ const saveDiary = async () => {
         <h1>Первый шаг</h1>
         <p>Трекер против лени и прокрастинации</p>
 
-        <div className="user-info">
-          {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
-          {streak > 0 && (
-            <div style={{ marginTop: 6, fontSize: 14 }}>
-              Серия: <strong>{streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}</strong>
-            </div>
-          )}
-        </div>
+     <div className="user-info">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div>
+      {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
+    </div>
+    
+    {streak > 0 && (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 6,
+        background: 'rgba(251, 146, 60, 0.15)',
+        padding: '6px 12px',
+        borderRadius: 20,
+        fontSize: 15,
+        fontWeight: 600,
+        color: '#fb923c'
+      }}>
+        <span style={{ fontSize: 18 }}>🔥</span>
+        {streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}
+      </div>
+    )}
+  </div>
+
+  {/* Календарь стрика */}
+  <div style={{ 
+    display: 'flex', 
+    gap: 5, 
+    marginTop: 14, 
+    justifyContent: 'space-between' 
+  }}>
+    {Array.from({ length: 14 }).map((_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (13 - i))
+      const dateStr = d.toISOString().slice(0, 10)
+      const isActive = streakDays.includes(dateStr)
+      const isToday = i === 13
+
+      return (
+        <div 
+          key={dateStr}
+          title={dateStr}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 5,
+            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.1)',
+            border: isToday ? '2px solid #60a5fa' : 'none',
+            opacity: isActive ? 1 : 0.5
+          }}
+        />
+      )
+    })}
+  </div>
+  
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    marginTop: 6, 
+    fontSize: 11, 
+    opacity: 0.5 
+  }}>
+    <span>14 дней назад</span>
+    <span>Сегодня</span>
+  </div>
+</div>
 
         <button className="main-button" onClick={() => setScreen('lazy')}>
           Мне сейчас лень
