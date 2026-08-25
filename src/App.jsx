@@ -58,14 +58,14 @@ const [newPriority, setNewPriority] = useState('normal')
     ]
   }
 
-  const templates = [
-    { name: 'Начать работу', firstStep: 'Открыть ноутбук и написать одно предложение' },
-    { name: 'Физическая активность', firstStep: 'Встать и сделать 5 приседаний' },
-    { name: 'Навести порядок', firstStep: 'Убрать 3 вещи на место' },
-    { name: 'Чтение', firstStep: 'Открыть книгу и прочитать 1 страницу' },
-    { name: 'Меньше телефона', firstStep: 'Поставить телефон экраном вниз на 2 минуты' },
-    { name: 'Ранний подъём', firstStep: 'Сразу встать с кровати' },
-  ]
+ const templates = [
+  { name: 'Начать работу', firstStep: 'Открыть ноутбук и написать одно предложение', duration: 25, priority: 'high' },
+  { name: 'Физическая активность', firstStep: 'Встать и сделать 5 приседаний', duration: 10, priority: 'normal' },
+  { name: 'Навести порядок', firstStep: 'Убрать 3 вещи на место', duration: 10, priority: 'normal' },
+  { name: 'Чтение', firstStep: 'Открыть книгу и прочитать 1 страницу', duration: 15, priority: 'normal' },
+  { name: 'Меньше телефона', firstStep: 'Поставить телефон экраном вниз на 2 минуты', duration: 5, priority: 'high' },
+  { name: 'Ранний подъём', firstStep: 'Сразу встать с кровати', duration: 5, priority: 'high' },
+]
 
  // Загрузка данных
 useEffect(() => {
@@ -814,7 +814,7 @@ if (showFullCalendar) {
                 <button 
                   key={t.name} 
                   className="option-btn" 
-                  onClick={() => addHabit(t.name, t.firstStep)}
+               onClick={() => addHabit(t.name, t.firstStep, t.duration, null, t.priority)}
                 >
                   <div style={{ fontWeight: 600 }}>{t.name}</div>
                   <div style={{ fontSize: 13, opacity: 0.7, marginTop: 3 }}>{t.firstStep}</div>
@@ -946,7 +946,7 @@ if (showFullCalendar) {
 
           {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
 
-       {habits.map(habit => {
+    {habits.map(habit => {
   const name = (habit.name || '').toLowerCase()
   let icon = '⚡'
   let color = '#a78bfa'
@@ -969,6 +969,12 @@ if (showFullCalendar) {
     icon = '💧'; color = '#38bdf8'
   }
 
+  const durationText = habit.duration_minutes 
+    ? (habit.duration_minutes >= 60 
+        ? `${Math.floor(habit.duration_minutes / 60)} ч` 
+        : `${habit.duration_minutes} мин`)
+    : null
+
   return (
     <div 
       key={habit.id} 
@@ -983,6 +989,7 @@ if (showFullCalendar) {
         borderLeft: `3px solid ${color}`
       }}
     >
+      {/* Иконка */}
       <div style={{
         width: 44,
         height: 44,
@@ -996,11 +1003,31 @@ if (showFullCalendar) {
         {icon}
       </div>
 
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, fontSize: 15 }}>{habit.name}</div>
-        <div style={{ fontSize: 13, opacity: 0.55, marginTop: 3 }}>{habit.first_step}</div>
+      {/* Контент */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>{habit.name}</div>
+          {habit.priority === 'high' && (
+            <span style={{ fontSize: 14 }}>🚩</span>
+          )}
+        </div>
+        
+        <div style={{ fontSize: 13, opacity: 0.55, marginTop: 3 }}>
+          {habit.first_step}
+        </div>
+
+        {/* Время и длительность */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+          {habit.planned_time && (
+            <span>🕐 {habit.planned_time?.slice(0, 5)}</span>
+          )}
+          {durationText && (
+            <span>⏱ {durationText}</span>
+          )}
+        </div>
       </div>
 
+      {/* Кнопки */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button 
           onClick={() => toggleHabit(habit.id)}
