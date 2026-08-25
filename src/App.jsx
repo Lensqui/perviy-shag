@@ -650,48 +650,53 @@ if (showFullCalendar) {
 
   {/* Красивая неделя */}
   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-    {Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date()
-      d.setDate(d.getDate() - (6 - i))
-      const dateStr = d.toISOString().slice(0, 10)
-      const dayNum = d.getDate()
-      const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-      const dayName = dayNames[d.getDay()]
-      const isActive = streakDays.includes(dateStr)
-      const isToday = dateStr === new Date().toISOString().slice(0, 10)
+{Array.from({ length: 7 }).map((_, i) => {
+  const d = new Date()
+  d.setDate(d.getDate() - (6 - i))
+  const dateStr = d.toISOString().slice(0, 10)
+  const dayNum = d.getDate()
+  const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+  const dayName = dayNames[d.getDay()]
+  const isActive = streakDays.includes(dateStr)
+  const isToday = dateStr === new Date().toISOString().slice(0, 10)
 
-      return (
-        <div 
-          key={dateStr}
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 6,
-            padding: '10px 4px',
-            borderRadius: 14,
-            background: isToday ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.04)',
-            border: isToday ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent'
-          }}
-        >
-          <div style={{ fontSize: 11, opacity: 0.6 }}>{dayName}</div>
-          <div style={{
-            fontSize: 16,
-            fontWeight: isToday ? 700 : 500,
-            color: isToday ? '#c4b5fd' : '#fff'
-          }}>
-            {dayNum}
-          </div>
-          <div style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: isActive ? '#22c55e' : 'rgba(255,255,255,0.15)'
-          }} />
-        </div>
-      )
-    })}
+  return (
+    <div 
+      key={dateStr}
+      onClick={() => {
+        setShowFullCalendar(true)
+        openDay(dateStr)
+      }}
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6,
+        padding: '10px 4px',
+        borderRadius: 14,
+        background: isToday ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.04)',
+        border: isToday ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent',
+        cursor: 'pointer'
+      }}
+    >
+      <div style={{ fontSize: 11, opacity: 0.6 }}>{dayName}</div>
+      <div style={{
+        fontSize: 16,
+        fontWeight: isToday ? 700 : 500,
+        color: isToday ? '#c4b5fd' : '#fff'
+      }}>
+        {dayNum}
+      </div>
+      <div style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: isActive ? '#22c55e' : 'rgba(255,255,255,0.15)'
+      }} />
+    </div>
+  )
+})}
   </div>
 
   <button 
