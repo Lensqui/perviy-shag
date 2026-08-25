@@ -620,40 +620,31 @@ if (showFullCalendar) {
   </p>
 ) : (
   selectedDayHabits.map((item, idx) => {
-    // Подбираем иконку по названию привычки
     const name = (item.habits?.name || '').toLowerCase()
     let icon = '⚡'
     let color = '#a78bfa'
 
     if (name.includes('работ') || name.includes('проект') || name.includes('ноутбук')) {
-      icon = '💻'
-      color = '#60a5fa'
+      icon = '💻'; color = '#60a5fa'
     } else if (name.includes('чтение') || name.includes('книг')) {
-      icon = '📖'
-      color = '#c084fc'
+      icon = '📖'; color = '#c084fc'
     } else if (name.includes('тренир') || name.includes('присед') || name.includes('физич') || name.includes('спорт')) {
-      icon = '💪'
-      color = '#34d399'
+      icon = '💪'; color = '#34d399'
     } else if (name.includes('медита') || name.includes('дыхан')) {
-      icon = '🧘'
-      color = '#a78bfa'
+      icon = '🧘'; color = '#a78bfa'
     } else if (name.includes('порядок') || name.includes('убор')) {
-      icon = '✨'
-      color = '#fbbf24'
+      icon = '✨'; color = '#fbbf24'
     } else if (name.includes('телефон') || name.includes('экран')) {
-      icon = '📱'
-      color = '#f472b6'
+      icon = '📱'; color = '#f472b6'
     } else if (name.includes('подъём') || name.includes('утр')) {
-      icon = '🌅'
-      color = '#fb923c'
+      icon = '🌅'; color = '#fb923c'
     } else if (name.includes('вод')) {
-      icon = '💧'
-      color = '#38bdf8'
+      icon = '💧'; color = '#38bdf8'
     }
 
     return (
       <div 
-        key={idx} 
+        key={idx}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -665,9 +656,10 @@ if (showFullCalendar) {
           borderLeft: `3px solid ${color}`
         }}
       >
+        {/* Иконка */}
         <div style={{
-          width: 42,
-          height: 42,
+          width: 44,
+          height: 44,
           borderRadius: 14,
           background: `${color}22`,
           display: 'flex',
@@ -677,7 +669,8 @@ if (showFullCalendar) {
         }}>
           {icon}
         </div>
-        
+
+        {/* Название */}
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 15 }}>
             {item.habits?.name || 'Привычка'}
@@ -687,18 +680,26 @@ if (showFullCalendar) {
           </div>
         </div>
 
-        <div style={{
-          width: 28,
-          height: 28,
-          borderRadius: '50%',
-          background: 'rgba(34,197,94,0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#4ade80',
-          fontSize: 16
-        }}>
-          ✓
+        {/* Кружок прогресса 100% */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <div style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            background: 'rgba(34,197,94,0.15)',
+            border: '2px solid #22c55e',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#4ade80',
+            fontSize: 16,
+            fontWeight: 700
+          }}>
+            ✓
+          </div>
+          <div style={{ fontSize: 11, opacity: 0.5 }}>
+            100%
+          </div>
         </div>
       </div>
     )
@@ -895,20 +896,98 @@ if (showFullCalendar) {
 
           {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
 
-          {habits.map(habit => (
-            <div key={habit.id} className="habit-card">
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{habit.name}</div>
-           <div style={{ fontSize: 14, opacity: 0.7, marginTop: 4 }}>{habit.first_step}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button className={`check-btn ${habit.doneToday ? 'done' : ''}`} onClick={() => toggleHabit(habit.id)}>
-                  {habit.doneToday ? '✓' : ''}
-                </button>
-                <button onClick={() => deleteHabit(habit.id)} style={{ background: 'transparent', border: 'none', color: '#ff3b30', fontSize: 20, cursor: 'pointer' }}>×</button>
-              </div>
-            </div>
-          ))}
+       {habits.map(habit => {
+  const name = (habit.name || '').toLowerCase()
+  let icon = '⚡'
+  let color = '#a78bfa'
+
+  if (name.includes('работ') || name.includes('проект') || name.includes('ноутбук')) {
+    icon = '💻'; color = '#60a5fa'
+  } else if (name.includes('чтение') || name.includes('книг')) {
+    icon = '📖'; color = '#c084fc'
+  } else if (name.includes('тренир') || name.includes('присед') || name.includes('физич') || name.includes('спорт')) {
+    icon = '💪'; color = '#34d399'
+  } else if (name.includes('медита') || name.includes('дыхан')) {
+    icon = '🧘'; color = '#a78bfa'
+  } else if (name.includes('порядок') || name.includes('убор')) {
+    icon = '✨'; color = '#fbbf24'
+  } else if (name.includes('телефон') || name.includes('экран')) {
+    icon = '📱'; color = '#f472b6'
+  } else if (name.includes('подъём') || name.includes('утр')) {
+    icon = '🌅'; color = '#fb923c'
+  } else if (name.includes('вод')) {
+    icon = '💧'; color = '#38bdf8'
+  }
+
+  return (
+    <div 
+      key={habit.id} 
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 16px',
+        background: 'rgba(255,255,255,0.04)',
+        borderRadius: 16,
+        marginBottom: 10,
+        borderLeft: `3px solid ${color}`
+      }}
+    >
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: `${color}22`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 22
+      }}>
+        {icon}
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 15 }}>{habit.name}</div>
+        <div style={{ fontSize: 13, opacity: 0.55, marginTop: 3 }}>{habit.first_step}</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button 
+          onClick={() => toggleHabit(habit.id)}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: habit.doneToday ? 'none' : '2px solid rgba(255,255,255,0.25)',
+            background: habit.doneToday ? '#22c55e' : 'transparent',
+            color: '#fff',
+            fontSize: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          {habit.doneToday ? '✓' : ''}
+        </button>
+
+        <button 
+          onClick={() => deleteHabit(habit.id)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#ff3b30',
+            fontSize: 20,
+            cursor: 'pointer',
+            padding: 4
+          }}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  )
+})}
 
           <button className="add-habit-btn" onClick={() => setScreen('add')}>+ Добавить привычку</button>
         </div>
