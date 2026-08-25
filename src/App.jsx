@@ -12,6 +12,9 @@ const [currentMonth, setCurrentMonth] = useState(new Date())
 const [selectedDate, setSelectedDate] = useState(null)
 const [selectedDayHabits, setSelectedDayHabits] = useState([])
 const [currentStep, setCurrentStep] = useState(0)
+const [newDuration, setNewDuration] = useState(15)
+const [newTime, setNewTime] = useState('')
+const [newPriority, setNewPriority] = useState('normal')
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [newHabitName, setNewHabitName] = useState('')
@@ -197,7 +200,7 @@ if (diaryError) {
     setScreen('main')
   }
 
-const addHabit = async (name, firstStep) => {
+const addHabit = async (name, firstStep, duration = 15, time = null, priority = 'normal') => {
   if (!name?.trim() || !firstStep?.trim()) {
     alert('Заполни название и первый шаг')
     return
@@ -208,10 +211,57 @@ const addHabit = async (name, firstStep) => {
 
   if (!tgUser?.id) {
     alert('Не удалось получить данные пользователя Telegram')
-    console.log('telegram:', telegram)
-    console.log('initDataUnsafe:', telegram?.initDataUnsafe)
     return
   }
+
+  try {
+    await supabase
+      .from('users')
+      .upsert({
+        telegram_id: tgUser.id,
+        first_name: tgUser.first_name,
+        last_name: tgUser.last_name || null,
+        username: tgUser.username || null,
+        language_code: tgUser.language_code || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'telegram_id' })
+
+    const { data, error } = await supabase
+      .from('habits')
+      .insert({
+        telegram_id: tgUser.id,
+        name: name.trim(),
+        first_step: firstStep.trim(),
+        duration_minutes: duration,
+        planned_time: time || null,
+        priority: priority,
+        is_active: true
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Ошибка добавления привычки:', error)
+      alert('Ошибка: ' + error.message)
+      return
+    }
+
+    setHabits(prev => [data, ...prev])
+    setNewHabitName('')
+    setNewFirstStep('')
+    setNewDuration(15)
+    setNewTime('')
+    setNewPriority('normal')
+    
+    if (screen === 'onboarding') {
+      localStorage.setItem('onboardingDone', 'true')
+    }
+    setScreen('main')
+  } catch (err) {
+    console.error(err)
+    alert('Произошла ошибка при сохранении')
+  }
+
 // Загружаем дни активности за последние 21 день (стрики)
 const twentyOneDaysAgo = new Date()
 twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 20)
@@ -1031,33 +1081,112 @@ if (showFullCalendar) {
   }
 
   // ===== Добавление привычки =====
-  if (screen === 'add') {
-    return (
-      <div className="app">
-        <h2>Новая привычка</h2>
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 14, marginBottom: 10, opacity: 0.7 }}>Готовые шаблоны:</p>
-          <div className="options">
-            {templates.map(t => (
-              <button key={t.name} className="option-btn" onClick={() => addHabit(t.name, t.firstStep)}>
-                <div style={{ fontWeight: 600 }}>{t.name}</div>
-                <div style={{ fontSize: 13, opacity: 0.7, marginTop: 2 }}>{t.firstStep}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="form">
-          <p style={{ fontSize: 14, opacity: 0.7 }}>Или создай свою:</p>
-          <label>Название</label>
-          <input type="text" value={newHabitName} onChange={e => setNewHabitName(e.target.value)} placeholder="Медитация" />
-          <label>Первый шаг</label>
-          <input type="text" value={newFirstStep} onChange={e => setNewFirstStep(e.target.value)} placeholder="Сесть и закрыть глаза" />
-          <button className="main-button" onClick={() => addHabit(newHabitName, newFirstStep)}>Сохранить</button>
-          <button className="back-button" onClick={() => setScreen('main')}>← Отмена</button>
+if (screen === 'add') {
+  return (
+    <div className="app">
+      <h2>Новая привычка</h2>
+
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 14, marginBottom: 10, opacity: 0.7 }}>Готовые шаблоны:</p>
+        <div className="options">
+          {templates.map(t => (
+            <button 
+              key={t.name} 
+              className="option-btn" 
+              onClick={() => addHabit(t.name, t.firstStep, 15, null, 'normal')}
+            >
+              <div style={{ fontWeight: 600 }}>{t.name}</div>
+              <div style={{ fontSize: 13, opacity: 0.7, marginTop: 2 }}>{t.firstStep}</div>
+            </button>
+          ))}
         </div>
       </div>
-    )
-  }
+
+      <div className="form">
+        <p style={{ fontSize: 14, opacity: 0.7, marginBottom: 12 }}>Или создай свою:</p>
+
+        <label>Название</label>
+        <input 
+          type="text" 
+          value={newHabitName} 
+          onChange={e => setNewHabitName(e.target.value)} 
+          placeholder="Медитация" 
+        />
+
+        <label>Первый шаг</label>
+        <input 
+          type="text" 
+          value={newFirstStep} 
+          onChange={e => setNewFirstStep(e.target.value)} 
+          placeholder="Сесть и закрыть глаза" 
+        />
+
+        <label>Длительность</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {[5, 10, 15, 25, 30, 45, 60].map(min => (
+            <button
+              key={min}
+              onClick={() => setNewDuration(min)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 20,
+                border: 'none',
+                background: newDuration === min ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                fontSize: 13,
+                cursor: 'pointer'
+              }}
+            >
+              {min} мин
+            </button>
+          ))}
+        </div>
+
+        <label>Время (необязательно)</label>
+        <input 
+          type="time" 
+          value={newTime} 
+          onChange={e => setNewTime(e.target.value)} 
+          style={{ marginBottom: 16 }}
+        />
+
+        <label>Приоритет</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {[
+            { value: 'normal', label: 'Обычный' },
+            { value: 'high', label: 'Важный' }
+          ].map(p => (
+            <button
+              key={p.value}
+              onClick={() => setNewPriority(p.value)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: 'none',
+                background: newPriority === p.value ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                fontSize: 13,
+                cursor: 'pointer'
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <button 
+          className="main-button" 
+          onClick={() => addHabit(newHabitName, newFirstStep, newDuration, newTime || null, newPriority)}
+        >
+          Сохранить
+        </button>
+        <button className="back-button" onClick={() => setScreen('main')}>
+          ← Отмена
+        </button>
+      </div>
+    </div>
+  )
+}
 
   // ===== Выбор причины =====
   if (screen === 'lazy') {
