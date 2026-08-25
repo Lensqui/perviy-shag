@@ -257,7 +257,116 @@ setStreakDays(Array.from(activeDates))
     setHabits(prev => [data, ...prev])
     setNewHabitName('')
     setNewFirstStep('')
-    
+    // ===== Полный календарь =====
+if (showFullCalendar) {
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1
+  const daysInMonth = lastDay.getDate()
+
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+
+  const days = []
+  for (let i = 0; i < startDay; i++) days.push(null)
+  for (let i = 1; i <= daysInMonth; i++) days.push(i)
+
+  return (
+    <div className="app">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <button 
+          onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
+        >
+          ←
+        </button>
+        <h2 style={{ margin: 0, fontSize: 20 }}>{monthNames[month]} {year}</h2>
+        <button 
+          onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
+        >
+          →
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 10 }}>
+        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 12, opacity: 0.5 }}>{d}</div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+        {days.map((day, idx) => {
+          if (!day) return <div key={`empty-${idx}`} />
+
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const isActive = streakDays.includes(dateStr)
+          const isToday = dateStr === new Date().toISOString().slice(0, 10)
+          const isSelected = selectedDate === dateStr
+
+          return (
+            <div 
+              key={dateStr}
+              onClick={() => openDay(dateStr)}
+              style={{
+                height: 48,
+                borderRadius: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                fontWeight: isToday || isSelected ? 700 : 500,
+                background: isSelected ? 'rgba(139, 92, 246, 0.3)' : isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.04)',
+                color: isActive ? '#4ade80' : 'rgba(255,255,255,0.8)',
+                border: isToday ? '2px solid #a78bfa' : isSelected ? '1px solid #a78bfa' : '1px solid transparent',
+                cursor: 'pointer',
+                gap: 3
+              }}
+            >
+              {day}
+              {isActive && (
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {selectedDate && (
+        <div style={{ marginTop: 24 }}>
+          <h3 style={{ marginBottom: 12, fontSize: 16 }}>
+            {selectedDate}
+          </h3>
+
+          {selectedDayHabits.length === 0 ? (
+            <p style={{ opacity: 0.6, fontSize: 14 }}>В этот день привычки не отмечались</p>
+          ) : (
+            selectedDayHabits.map((item, idx) => (
+              <div key={idx} className="habit-card" style={{ marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{item.habits?.name || 'Привычка'}</div>
+                  <div style={{ fontSize: 13, opacity: 0.7 }}>{item.habits?.first_step}</div>
+                </div>
+                <div style={{ color: '#22c55e', fontSize: 18 }}>✓</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      <button className="back-button" onClick={() => {
+        setShowFullCalendar(false)
+        setSelectedDate(null)
+        setSelectedDayHabits([])
+      }} style={{ marginTop: 24 }}>
+        ← Назад
+      </button>
+    </div>
+  )
+}
     if (screen === 'onboarding') {
       localStorage.setItem('onboardingDone', 'true')
     }
@@ -731,117 +840,7 @@ const openDay = async (dateStr) => {
       </div>
     )
   }
-// ===== Полный календарь =====
-if (showFullCalendar) {
-  const year = currentMonth.getFullYear()
-  const month = currentMonth.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1
-  const daysInMonth = lastDay.getDate()
 
-  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
-
-  const days = []
-  for (let i = 0; i < startDay; i++) days.push(null)
-  for (let i = 1; i <= daysInMonth; i++) days.push(i)
-
-  return (
-    <div className="app">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <button 
-          onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
-          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
-        >
-          ←
-        </button>
-        <h2 style={{ margin: 0, fontSize: 20 }}>{monthNames[month]} {year}</h2>
-        <button 
-          onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
-          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
-        >
-          →
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 10 }}>
-        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
-          <div key={d} style={{ textAlign: 'center', fontSize: 12, opacity: 0.5 }}>{d}</div>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-        {days.map((day, idx) => {
-          if (!day) return <div key={`empty-${idx}`} />
-
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-          const isActive = streakDays.includes(dateStr)
-          const isToday = dateStr === new Date().toISOString().slice(0, 10)
-          const isSelected = selectedDate === dateStr
-
-          return (
-            <div 
-              key={dateStr}
-              onClick={() => openDay(dateStr)}
-              style={{
-                height: 48,
-                borderRadius: 12,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: isToday || isSelected ? 700 : 500,
-                background: isSelected ? 'rgba(139, 92, 246, 0.3)' : isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.04)',
-                color: isActive ? '#4ade80' : 'rgba(255,255,255,0.8)',
-                border: isToday ? '2px solid #a78bfa' : isSelected ? '1px solid #a78bfa' : '1px solid transparent',
-                cursor: 'pointer',
-                gap: 3
-              }}
-            >
-              {day}
-              {isActive && (
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Выбранный день */}
-      {selectedDate && (
-        <div style={{ marginTop: 24 }}>
-          <h3 style={{ marginBottom: 12, fontSize: 16 }}>
-            {selectedDate}
-          </h3>
-
-          {selectedDayHabits.length === 0 ? (
-            <p style={{ opacity: 0.6, fontSize: 14 }}>В этот день привычки не отмечались</p>
-          ) : (
-            selectedDayHabits.map((item, idx) => (
-              <div key={idx} className="habit-card" style={{ marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{item.habits?.name || 'Привычка'}</div>
-                  <div style={{ fontSize: 13, opacity: 0.7 }}>{item.habits?.first_step}</div>
-                </div>
-                <div style={{ color: '#22c55e', fontSize: 18 }}>✓</div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      <button className="back-button" onClick={() => {
-        setShowFullCalendar(false)
-        setSelectedDate(null)
-        setSelectedDayHabits([])
-      }} style={{ marginTop: 24 }}>
-        ← Назад
-      </button>
-    </div>
-  )
-}
   return null
 }
 
