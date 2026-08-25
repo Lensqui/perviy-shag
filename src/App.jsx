@@ -103,7 +103,6 @@ useEffect(() => {
           console.error('Ошибка сохранения пользователя:', error)
         }
 
-     // Загружаем привычки
 const { data: habitsData, error: habitsError } = await supabase
   .from('habits')
   .select('*')
@@ -114,7 +113,6 @@ const { data: habitsData, error: habitsError } = await supabase
 if (habitsError) {
   console.error('Ошибка загрузки привычек:', habitsError)
 } else {
-  // Проверяем, какие привычки уже выполнены сегодня
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 
   const { data: logs } = await supabase
@@ -129,7 +127,18 @@ if (habitsError) {
     ...h,
     doneToday: doneIds.has(h.id)
   }))
+const { data: diaryData, error: diaryError } = await supabase
+  .from('diary_entries')
+  .select('*')
+  .eq('telegram_id', tgUser.id)
+  .order('created_at', { ascending: false })
+  .limit(30)
 
+if (diaryError) {
+  console.error('Ошибка загрузки дневника:', diaryError)
+} else {
+  setDiaryEntries(diaryData || [])
+}
   setHabits(habitsWithStatus)
 }
 
@@ -324,17 +333,47 @@ const deleteHabit = async (id) => {
   }
 }
 
-  const saveDiary = () => {
-    if (!diaryAnswers.q1 && !diaryAnswers.q2 && !diaryAnswers.q3) return
-    const entry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString('ru-RU'),
-      ...diaryAnswers
+const saveDiary = async () => {
+  if (!diaryAnswers.q1 && !diaryAnswers.q2 && !diaryAnswers.q3) {
+    alert('Напиши хотя бы что-то')
+    return
+  }
+
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+
+  if (!tgUser?.id) {
+    alert('Не удалось определить пользователя')
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('diary_entries')
+      .insert({
+        telegram_id: tgUser.id,
+        q1: diaryAnswers.q1 || null,
+        q2: diaryAnswers.q2 || null,
+        q3: diaryAnswers.q3 || null,
+        entry_date: new Date().toISOString().slice(0, 10)
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Ошибка сохранения дневника:', error)
+      alert('Не удалось сохранить: ' + error.message)
+      return
     }
-    setDiaryEntries(prev => [entry, ...prev])
+
+    setDiaryEntries(prev => [data, ...prev])
     setDiaryAnswers({ q1: '', q2: '', q3: '' })
     alert('Запись сохранена')
+  } catch (err) {
+    console.error(err)
+    alert('Произошла ошибка')
   }
+}
 
   const startChain = (type) => {
     setCurrentChain(chains[type])
