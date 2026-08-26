@@ -1213,21 +1213,22 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
   
   {/* Кружок прогресса */}
   <div 
-    onClick={() => openHabitTimer(habit)}
+    onClick={() => !habit.skipped && openHabitTimer(habit)}
     style={{
       width: 40,
       height: 40,
       borderRadius: '50%',
-      background: `conic-gradient(${
-        (habit.progress || 0) >= 100 ? '#22c55e' :
-        (habit.progress || 0) >= 50 ? '#a78bfa' :
-        (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
-      } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
+      background: habit.skipped
+        ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
+        : `conic-gradient(${
+            (habit.progress || 0) >= 100 ? '#22c55e' :
+            (habit.progress || 0) >= 50 ? '#a78bfa' :
+            (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+          } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      cursor: 'pointer',
-      position: 'relative'
+      cursor: habit.skipped ? 'default' : 'pointer'
     }}
   >
     <div style={{
@@ -1238,14 +1239,32 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: (habit.progress || 0) >= 100 ? 14 : 11,
+      fontSize: habit.skipped || (habit.progress || 0) >= 100 ? 14 : 11,
       fontWeight: 700,
-      color: (habit.progress || 0) >= 100 ? '#4ade80' : 
+      color: habit.skipped ? '#fb923c' :
+             (habit.progress || 0) >= 100 ? '#4ade80' : 
              (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
     }}>
-      {(habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+      {habit.skipped ? '⏭' : (habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
     </div>
   </div>
+
+  {!habit.doneToday && !habit.skipped && (
+    <button 
+      onClick={() => skipHabit(habit)}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: 'rgba(251, 146, 60, 0.8)',
+        fontSize: 14,
+        cursor: 'pointer',
+        padding: '4px 6px'
+      }}
+      title="Пропустить"
+    >
+      ⏭
+    </button>
+  )}
 
   <button 
     onClick={() => deleteHabit(habit.id)}
@@ -1261,22 +1280,6 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
   >
     ×
   </button>
-  {!habit.doneToday && !habit.skipped && (
-  <button 
-    onClick={() => skipHabit(habit)}
-    style={{
-      background: 'transparent',
-      border: 'none',
-      color: 'rgba(251, 146, 60, 0.8)',
-      fontSize: 12,
-      cursor: 'pointer',
-      padding: '4px 6px'
-    }}
-    title="Пропустить"
-  >
-    ⏭
-  </button>
-)}
 </div>
     </div>
   )
