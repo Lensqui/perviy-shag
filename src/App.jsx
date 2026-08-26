@@ -1131,59 +1131,60 @@ if (showFullCalendar) {
         </div>
       </div>
 
-      {/* Кнопки */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <button 
-          onClick={() => toggleHabit(habit.id)}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            border: habit.doneToday ? 'none' : '2px solid rgba(255,255,255,0.2)',
-            background: habit.doneToday ? '#22c55e' : 'transparent',
-            color: '#fff',
-            fontSize: 16,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
-        >
-          {habit.doneToday ? '✓' : ''}
-        </button>
-<button 
-  onClick={() => openHabitTimer(habit)}
-  style={{
-    width: 34,
-    height: 34,
-    borderRadius: '50%',
-    border: 'none',
-    background: 'rgba(139, 92, 246, 0.2)',
-    color: '#c4b5fd',
-    fontSize: 14,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer'
-  }}
->
-  ▶
-</button>
-        <button 
-          onClick={() => deleteHabit(habit.id)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'rgba(255,59,48,0.7)',
-            fontSize: 20,
-            cursor: 'pointer',
-            padding: 4,
-            lineHeight: 1
-          }}
-        >
-          ×
-        </button>
-      </div>
+{/* Прогресс + кнопки */}
+<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+  
+  {/* Кружок прогресса */}
+  <div 
+    onClick={() => openHabitTimer(habit)}
+    style={{
+      width: 40,
+      height: 40,
+      borderRadius: '50%',
+      background: `conic-gradient(${
+        (habit.progress || 0) >= 100 ? '#22c55e' :
+        (habit.progress || 0) >= 50 ? '#a78bfa' :
+        (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+      } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      position: 'relative'
+    }}
+  >
+    <div style={{
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
+      background: '#1c1c22',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: (habit.progress || 0) >= 100 ? 14 : 11,
+      fontWeight: 700,
+      color: (habit.progress || 0) >= 100 ? '#4ade80' : 
+             (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
+    }}>
+      {(habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+    </div>
+  </div>
+
+  <button 
+    onClick={() => deleteHabit(habit.id)}
+    style={{
+      background: 'transparent',
+      border: 'none',
+      color: 'rgba(255,59,48,0.7)',
+      fontSize: 20,
+      cursor: 'pointer',
+      padding: 4,
+      lineHeight: 1
+    }}
+  >
+    ×
+  </button>
+</div>
     </div>
   )
 })}
