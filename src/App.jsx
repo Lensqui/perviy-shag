@@ -860,7 +860,8 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: habit.skipped ? 'default' : 'pointer',
+cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
+opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1,
     position: 'relative'
   }}
 >
