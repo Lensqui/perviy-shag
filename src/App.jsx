@@ -217,6 +217,13 @@ useEffect(() => {
     if (interval) clearInterval(interval)
   }
 }, [timerRunning, timerSeconds])
+const openHabitTimer = (habit) => {
+  const minutes = habit.duration_minutes || 15
+  setTimerHabit(habit)
+  setTimerSeconds(minutes * 60)
+  setTimerRunning(false) // не запускаем сразу
+  setScreen('timer')
+}
   const finishOnboarding = () => {
     localStorage.setItem('onboardingDone', 'true')
     setScreen('main')
@@ -1296,13 +1303,7 @@ if (screen === 'add') {
     )
   }
 
-const openHabitTimer = (habit) => {
-  const minutes = habit.duration_minutes || 15
-  setTimerHabit(habit)
-  setTimerSeconds(minutes * 60)
-  setTimerRunning(false) // не запускаем сразу
-  setScreen('timer')
-}
+
 // ===== Таймер =====
 if (screen === 'timer' && timerHabit) {
   const mins = Math.floor(timerSeconds / 60)
