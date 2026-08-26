@@ -517,7 +517,7 @@ const openDay = async (dateStr) => {
 
   const { data } = await supabase
     .from('habit_logs')
-    .select('habit_id, habits(name, first_step)')
+    .select('habit_id, focus_seconds, habits(name, first_step, duration_minutes)')
     .eq('telegram_id', tgUser.id)
     .eq('completed_at', dateStr)
 
@@ -689,8 +689,21 @@ if (showFullCalendar) {
         </div>
       )}
     </div>
+{/* Сводка */}
+{(() => {
+  const totalFocus = selectedDayHabits.reduce((sum, item) => sum + (item.focus_seconds || 0), 0)
+  const focusMin = Math.round(totalFocus / 60)
+  const completed = selectedDayHabits.filter(item => {
+    const dur = (item.habits?.duration_minutes || 15) * 60
+    return (item.focus_seconds || 0) >= dur
+  }).length
+  const partial = selectedDayHabits.filter(item => {
+    const dur = (item.habits?.duration_minutes || 15) * 60
+    const f = item.focus_seconds || 0
+    return f > 0 && f < dur
+  }).length
 
-    {/* Сводка */}
+  return (
     <div style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(4, 1fr)',
@@ -698,13 +711,11 @@ if (showFullCalendar) {
       marginBottom: 20
     }}>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(34,197,94,0.1)', borderRadius: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>
-          {selectedDayHabits.length}
-        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>{completed}</div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Выполнено</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(139,92,246,0.1)', borderRadius: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#a78bfa' }}>0</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#a78bfa' }}>{partial}</div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Частично</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(249,115,22,0.1)', borderRadius: 12 }}>
@@ -712,11 +723,16 @@ if (showFullCalendar) {
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(59,130,246,0.1)', borderRadius: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>—</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>
+          {focusMin > 0 ? `${focusMin}м` : '—'}
+        </div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Фокус</div>
       </div>
     </div>
+  )
+})()}
 
+{/* Список привычек за день */}
 {selectedDayHabits.length === 0 ? (
   <p style={{ opacity: 0.6, fontSize: 14, textAlign: 'center' }}>
     В этот день привычки не отмечались
@@ -745,6 +761,11 @@ if (showFullCalendar) {
       icon = '💧'; color = '#38bdf8'
     }
 
+    const total = (item.habits?.duration_minutes || 15) * 60
+    const focus = item.focus_seconds || 0
+    const progress = total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0
+    const focusMin = Math.round(focus / 60)
+
     return (
       <div 
         key={idx}
@@ -759,49 +780,55 @@ if (showFullCalendar) {
           borderLeft: `3px solid ${color}`
         }}
       >
-        {/* Иконка */}
         <div style={{
-          width: 44,
-          height: 44,
+          width: 42,
+          height: 42,
           borderRadius: 14,
           background: `${color}22`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 22
+          fontSize: 20
         }}>
           {icon}
         </div>
 
-        {/* Название */}
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 15 }}>
             {item.habits?.name || 'Привычка'}
           </div>
-          <div style={{ fontSize: 12, opacity: 0.55, marginTop: 3 }}>
-            {item.habits?.first_step || ''}
+          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 2 }}>
+            {focusMin > 0 ? `Фокус: ${focusMin} мин` : item.habits?.first_step || ''}
           </div>
         </div>
 
-        {/* Кружок прогресса 100% */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+        {/* Кружок прогресса */}
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: `conic-gradient(${
+            progress >= 100 ? '#22c55e' :
+            progress >= 50 ? '#a78bfa' :
+            progress > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+          } ${progress}%, rgba(255,255,255,0.08) 0)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
           <div style={{
-            width: 34,
-            height: 34,
+            width: 26,
+            height: 26,
             borderRadius: '50%',
-            background: 'rgba(34,197,94,0.15)',
-            border: '2px solid #22c55e',
+            background: '#1c1c22',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#4ade80',
-            fontSize: 16,
-            fontWeight: 700
+            fontSize: progress >= 100 ? 13 : 10,
+            fontWeight: 700,
+            color: progress >= 100 ? '#4ade80' : '#e2e8f0'
           }}>
-            ✓
-          </div>
-          <div style={{ fontSize: 11, opacity: 0.5 }}>
-            100%
+            {progress >= 100 ? '✓' : `${progress}%`}
           </div>
         </div>
       </div>
