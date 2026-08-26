@@ -237,10 +237,13 @@ useEffect(() => {
   }
 }, [timerRunning, timerSeconds])
 const openHabitTimer = (habit) => {
-  const minutes = habit.duration_minutes || 15
+  const total = (habit.duration_minutes || 15) * 60
+  const alreadySpent = habit.focusSeconds || 0
+  const remaining = Math.max(0, total - alreadySpent)
+
   setTimerHabit(habit)
-  setTimerSeconds(minutes * 60)
-  setTimerRunning(false) // не запускаем сразу
+  setTimerSeconds(remaining > 0 ? remaining : total) // если уже 100% — показываем полное
+  setTimerRunning(false)
   setScreen('timer')
 }
   const finishOnboarding = () => {
