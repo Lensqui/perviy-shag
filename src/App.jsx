@@ -860,8 +860,7 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
-opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1,
+    cursor: habit.skipped ? 'default' : 'pointer',
     position: 'relative'
   }}
 >
@@ -1111,8 +1110,7 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1,
  return (
   <div 
     key={habit.id}
-    onClick={() => !habit.skipped && openHabitTimer(habit)}
-    style={{
+onClick={() => !habit.skipped && !habit.doneToday && openHabitTimer(habit)}    style={{
       display: 'flex',
       alignItems: 'center',
       gap: 14,
@@ -1124,7 +1122,7 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1,
       marginBottom: 12,
       borderLeft: `3px solid ${habit.skipped ? '#fb923c' : color}`,
       position: 'relative',
-      cursor: habit.skipped ? 'default' : 'pointer',
+    cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
       opacity: habit.skipped ? 0.75 : 1
     }}
   >
