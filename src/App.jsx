@@ -135,18 +135,37 @@ if (habitsError) {
 } else {
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 
-  const { data: logs } = await supabase
-    .from('habit_logs')
-    .select('habit_id')
-    .eq('telegram_id', tgUser.id)
-    .eq('completed_at', today)
+const { data: logs } = await supabase
+  .from('habit_logs')
+  .select('habit_id, focus_seconds')
+  .eq('telegram_id', tgUser.id)
+  .eq('completed_at', today)
 
+const logsMap = {}
+;(logs || []).forEach(l => {
+  logsMap[l.habit_id] = l.focus_seconds || 0
+})
+
+const habitsWithStatus = (habitsData || []).map(h => {
+  const focus = logsMap[h.id] || 0
+  const total = (h.duration_minutes || 15) * 60
+  const progress = total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0
+  return {
+    ...h,
+    focusSeconds: focus,
+    progress,
+    doneToday: progress >= 100
+  }
+})
+
+/*
   const doneIds = new Set((logs || []).map(l => l.habit_id))
-
   const habitsWithStatus = (habitsData || []).map(h => ({
     ...h,
     doneToday: doneIds.has(h.id)
   }))
+    */
+
 const { data: diaryData, error: diaryError } = await supabase
   .from('diary_entries')
   .select('*')
@@ -205,13 +224,13 @@ useEffect(() => {
     interval = setInterval(() => {
       setTimerSeconds(prev => prev - 1)
     }, 1000)
-  } else if (timerRunning && timerSeconds === 0 && timerHabit) {
-    setTimerRunning(false)
-    toggleHabit(timerHabit.id)
-    alert('Готово! Привычка отмечена ✓')
-    setTimerHabit(null)
-    setScreen('main')
-  }
+} else if (timerRunning && timerSeconds === 0 && timerHabit) {
+  setTimerRunning(false)
+  const total = (timerHabit.duration_minutes || 15) * 60
+  saveFocusProgress(timerHabit, total)
+  setTimerHabit(null)
+  setScreen('main')
+}
 
   return () => {
     if (interval) clearInterval(interval)
@@ -367,7 +386,56 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     console.error(err)
   }
 }
+const saveFocusProgress = async (habit, secondsSpent) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id || !habit) return
 
+  const today = new Date().toISOString().slice(0, 10)
+  const total = (habit.duration_minutes || 15) * 60
+  const newFocus = Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
+  const progress = Math.min(100, Math.round((newFocus / total) * 100))
+
+  // upsert в habit_logs
+  const { error } = await supabase
+    .from('habit_logs')
+    .upsert({
+      habit_id: habit.id,
+      telegram_id: tgUser.id,
+      completed_at: today,
+      focus_seconds: newFocus
+    }, { onConflict: 'habit_id,completed_at' })
+
+  if (error) {
+    // если нет уникального ограничения — пробуем через delete+insert
+    await supabase.from('habit_logs').delete()
+      .eq('habit_id', habit.id)
+      .eq('completed_at', today)
+    
+    await supabase.from('habit_logs').insert({
+      habit_id: habit.id,
+      telegram_id: tgUser.id,
+      completed_at: today,
+      focus_seconds: newFocus
+    })
+  }
+
+  // обновляем локально
+  setHabits(prev => prev.map(h => {
+    if (h.id !== habit.id) return h
+    return {
+      ...h,
+      focusSeconds: newFocus,
+      progress,
+      doneToday: progress >= 100
+    }
+  }))
+
+  // обновляем streakDays
+  if (newFocus > 0) {
+    setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
+  }
+}
 const deleteHabit = async (id) => {
   if (!confirm('Удалить эту привычку?')) return
 
@@ -1356,61 +1424,68 @@ if (screen === 'timer' && timerHabit) {
         </div>
       </div>
 
-      {/* Кнопки управления */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-        <button
-          onClick={() => setTimerRunning(!timerRunning)}
-          style={{
-            padding: '14px 28px',
-            borderRadius: 16,
-            border: 'none',
-            background: timerRunning ? 'rgba(251, 146, 60, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-            color: timerRunning ? '#fb923c' : '#4ade80',
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          {timerRunning ? 'Пауза' : 'Продолжить'}
-        </button>
+{/* Кнопки управления */}
+<div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+  <button
+    onClick={() => setTimerRunning(!timerRunning)}
+    style={{
+      padding: '14px 24px',
+      borderRadius: 16,
+      border: 'none',
+      background: timerRunning ? 'rgba(251, 146, 60, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+      color: timerRunning ? '#fb923c' : '#4ade80',
+      fontSize: 15,
+      fontWeight: 600,
+      cursor: 'pointer'
+    }}
+  >
+    {timerRunning ? 'Пауза' : 'Запустить'}
+  </button>
 
-        <button
-          onClick={() => {
-            setTimerRunning(false)
-            setTimerHabit(null)
-            setScreen('main')
-          }}
-          style={{
-            padding: '14px 28px',
-            borderRadius: 16,
-            border: 'none',
-            background: 'rgba(255,255,255,0.08)',
-            color: '#fff',
-            fontSize: 16,
-            cursor: 'pointer'
-          }}
-        >
-          Отмена
-        </button>
-      </div>
+  <button
+    onClick={async () => {
+      // Сохраняем прогресс и выходим
+      const total = (timerHabit.duration_minutes || 15) * 60
+      const spent = total - timerSeconds
+      if (spent > 0) await saveFocusProgress(timerHabit, spent)
+      setTimerRunning(false)
+      setTimerHabit(null)
+      setScreen('main')
+    }}
+    style={{
+      padding: '14px 24px',
+      borderRadius: 16,
+      border: 'none',
+      background: 'rgba(255,255,255,0.08)',
+      color: '#fff',
+      fontSize: 15,
+      cursor: 'pointer'
+    }}
+  >
+    Сохранить и выйти
+  </button>
+</div>
 
-      <button
-        onClick={() => {
-          setTimerRunning(false)
-          toggleHabit(timerHabit.id)
-          setTimerHabit(null)
-          setScreen('main')
-        }}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: '#a78bfa',
-          fontSize: 14,
-          cursor: 'pointer'
-        }}
-      >
-        Завершить досрочно ✓
-      </button>
+<button
+  onClick={async () => {
+    // Завершить полностью
+    const total = (timerHabit.duration_minutes || 15) * 60
+    await saveFocusProgress(timerHabit, total)
+    setTimerRunning(false)
+    setTimerHabit(null)
+    setScreen('main')
+  }}
+  style={{
+    background: 'transparent',
+    border: 'none',
+    color: '#a78bfa',
+    fontSize: 14,
+    cursor: 'pointer',
+    marginBottom: 12
+  }}
+>
+  Завершить полностью ✓
+</button>
     </div>
   )
 }
