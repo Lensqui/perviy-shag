@@ -1107,182 +1107,187 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 
   const timeText = habit.planned_time ? habit.planned_time.slice(0, 5) : null
 
-  return (
-    <div 
-      key={habit.id} 
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        padding: '14px 16px',
-        background: 'rgba(255,255,255,0.04)',
-        borderRadius: 18,
-        marginBottom: 12,
-        borderLeft: `3px solid ${color}`,
-        position: 'relative'
-      }}
-    >
-      {/* Иконка */}
-      <div style={{
-        width: 46,
-        height: 46,
-        borderRadius: 14,
-        background: `${color}22`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 22,
-        flexShrink: 0
-      }}>
-        {icon}
-      </div>
-
-      {/* Контент */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-          <div style={{ 
-            fontWeight: 600, 
-            fontSize: 15,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {habit.name}
-          </div>
-
-          {/* Приоритет */}
-          {habit.priority === 'high' && (
-            <div style={{
-              fontSize: 11,
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: '#f87171',
-              padding: '2px 8px',
-              borderRadius: 20,
-              fontWeight: 600
-            }}>
-              Важно
-            </div>
-          )}
-        </div>
-        
-      <div style={{ 
-  fontSize: 13, 
-  opacity: 0.5, 
-  marginBottom: 8,
-  lineHeight: 1.35,
-  wordBreak: 'break-word'
-}}>
-  {habit.first_step}
-</div>
-
-        {/* Время и длительность */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {timeText && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              background: 'rgba(96, 165, 250, 0.12)',
-              color: '#60a5fa',
-              padding: '3px 9px',
-              borderRadius: 20
-            }}>
-              🕐 {timeText}
-            </div>
-          )}
-          {durationText && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              background: 'rgba(167, 139, 250, 0.12)',
-              color: '#a78bfa',
-              padding: '3px 9px',
-              borderRadius: 20
-            }}>
-              ⏱ {durationText}
-            </div>
-          )}
-        </div>
-      </div>
-
-{/* Прогресс + кнопки */}
-<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-  
-  {/* Кружок прогресса */}
+ return (
   <div 
+    key={habit.id}
     onClick={() => !habit.skipped && openHabitTimer(habit)}
     style={{
-      width: 40,
-      height: 40,
-      borderRadius: '50%',
-      background: habit.skipped
-        ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
-        : `conic-gradient(${
-            (habit.progress || 0) >= 100 ? '#22c55e' :
-            (habit.progress || 0) >= 50 ? '#a78bfa' :
-            (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
-          } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      cursor: habit.skipped ? 'default' : 'pointer'
+      gap: 14,
+      padding: '14px 16px',
+      background: habit.skipped 
+        ? 'rgba(251, 146, 60, 0.06)' 
+        : 'rgba(255,255,255,0.04)',
+      borderRadius: 18,
+      marginBottom: 12,
+      borderLeft: `3px solid ${habit.skipped ? '#fb923c' : color}`,
+      position: 'relative',
+      cursor: habit.skipped ? 'default' : 'pointer',
+      opacity: habit.skipped ? 0.75 : 1
     }}
   >
+    {/* Иконка */}
     <div style={{
-      width: 30,
-      height: 30,
-      borderRadius: '50%',
-      background: '#1c1c22',
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      background: `${color}22`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: habit.skipped || (habit.progress || 0) >= 100 ? 14 : 11,
-      fontWeight: 700,
-      color: habit.skipped ? '#fb923c' :
-             (habit.progress || 0) >= 100 ? '#4ade80' : 
-             (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
+      fontSize: 22,
+      flexShrink: 0
     }}>
-      {habit.skipped ? '⏭' : (habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+      {icon}
+    </div>
+
+    {/* Контент */}
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+        <div style={{ 
+          fontWeight: 600, 
+          fontSize: 15,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {habit.name}
+        </div>
+
+        {habit.priority === 'high' && (
+          <div style={{
+            fontSize: 11,
+            background: 'rgba(239, 68, 68, 0.15)',
+            color: '#f87171',
+            padding: '2px 8px',
+            borderRadius: 20,
+            fontWeight: 600
+          }}>
+            Важно
+          </div>
+        )}
+      </div>
+      
+      <div style={{ 
+        fontSize: 13, 
+        opacity: 0.5, 
+        marginBottom: 8,
+        lineHeight: 1.35,
+        wordBreak: 'break-word'
+      }}>
+        {habit.first_step}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {timeText && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 12,
+            background: 'rgba(96, 165, 250, 0.12)',
+            color: '#60a5fa',
+            padding: '3px 9px',
+            borderRadius: 20
+          }}>
+            🕐 {timeText}
+          </div>
+        )}
+        {durationText && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 12,
+            background: 'rgba(167, 139, 250, 0.12)',
+            color: '#a78bfa',
+            padding: '3px 9px',
+            borderRadius: 20
+          }}>
+            ⏱ {durationText}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Прогресс + кнопки */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      
+      {/* Кружок прогресса */}
+      <div style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        background: habit.skipped
+          ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
+          : `conic-gradient(${
+              (habit.progress || 0) >= 100 ? '#22c55e' :
+              (habit.progress || 0) >= 50 ? '#a78bfa' :
+              (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+            } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: 30,
+          height: 30,
+          borderRadius: '50%',
+          background: '#1c1c22',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: habit.skipped || (habit.progress || 0) >= 100 ? 14 : 11,
+          fontWeight: 700,
+          color: habit.skipped ? '#fb923c' :
+                 (habit.progress || 0) >= 100 ? '#4ade80' : 
+                 (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
+        }}>
+          {habit.skipped ? '⏭' : (habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+        </div>
+      </div>
+
+      {!habit.doneToday && !habit.skipped && (
+        <button 
+          onClick={(e) => {
+            e.stopPropagation()
+            skipHabit(habit)
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'rgba(251, 146, 60, 0.8)',
+            fontSize: 14,
+            cursor: 'pointer',
+            padding: '4px 6px'
+          }}
+          title="Пропустить"
+        >
+          ⏭
+        </button>
+      )}
+
+      <button 
+        onClick={(e) => {
+          e.stopPropagation()
+          deleteHabit(habit.id)
+        }}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'rgba(255,59,48,0.7)',
+          fontSize: 20,
+          cursor: 'pointer',
+          padding: 4,
+          lineHeight: 1
+        }}
+      >
+        ×
+      </button>
     </div>
   </div>
-
-  {!habit.doneToday && !habit.skipped && (
-    <button 
-      onClick={() => skipHabit(habit)}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        color: 'rgba(251, 146, 60, 0.8)',
-        fontSize: 14,
-        cursor: 'pointer',
-        padding: '4px 6px'
-      }}
-      title="Пропустить"
-    >
-      ⏭
-    </button>
-  )}
-
-  <button 
-    onClick={() => deleteHabit(habit.id)}
-    style={{
-      background: 'transparent',
-      border: 'none',
-      color: 'rgba(255,59,48,0.7)',
-      fontSize: 20,
-      cursor: 'pointer',
-      padding: 4,
-      lineHeight: 1
-    }}
-  >
-    ×
-  </button>
-</div>
-    </div>
-  )
+)
   
 })}
 
