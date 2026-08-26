@@ -4,6 +4,7 @@ import './App.css'
 import { supabase } from './supabase'
 const tg = window.Telegram?.WebApp
 function App() {
+  const [skipTapCount, setSkipTapCount] = useState({})
   const [user, setUser] = useState(null)
   const [streakDays, setStreakDays] = useState([])
   const [screen, setScreen] = useState('loading')
@@ -118,6 +119,7 @@ const { data: activityLogs } = await supabase
   .from('habit_logs')
   .select('completed_at')
   .eq('telegram_id', tgUser.id)
+  .eq('status', 'done')
   .gte('completed_at', thirtyDaysAgo.toISOString().slice(0, 10))
 
 const activeDates = new Set((activityLogs || []).map(l => l.completed_at))
@@ -400,44 +402,45 @@ const saveFocusProgress = async (habit, secondsSpent) => {
   const total = (habit.duration_minutes || 15) * 60
   const newFocus = Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
   const progress = Math.min(100, Math.round((newFocus / total) * 100))
+  const status = progress >= 100 ? 'done' : 'progress'
 
-  // upsert в habit_logs
   const { error } = await supabase
     .from('habit_logs')
     .upsert({
       habit_id: habit.id,
       telegram_id: tgUser.id,
       completed_at: today,
-      focus_seconds: newFocus
+      focus_seconds: newFocus,
+      status
     }, { onConflict: 'habit_id,completed_at' })
 
   if (error) {
-    // если нет уникального ограничения — пробуем через delete+insert
     await supabase.from('habit_logs').delete()
       .eq('habit_id', habit.id)
       .eq('completed_at', today)
-    
+
     await supabase.from('habit_logs').insert({
       habit_id: habit.id,
       telegram_id: tgUser.id,
       completed_at: today,
-      focus_seconds: newFocus
+      focus_seconds: newFocus,
+      status
     })
   }
 
-  // обновляем локально
   setHabits(prev => prev.map(h => {
     if (h.id !== habit.id) return h
     return {
       ...h,
       focusSeconds: newFocus,
       progress,
-      doneToday: progress >= 100
+      doneToday: progress >= 100,
+      skipped: false
     }
   }))
 
-  // обновляем streakDays
-  if (newFocus > 0) {
+
+if (progress >= 100) {
     setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
   }
 }
@@ -470,6 +473,29 @@ const skipHabit = async (habit) => {
       progress: 0,
       doneToday: false,
       skipped: true
+    }
+  }))
+}
+const unskipHabit = async (habit) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id || !habit) return
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  await supabase.from('habit_logs')
+    .delete()
+    .eq('habit_id', habit.id)
+    .eq('completed_at', today)
+
+  setHabits(prev => prev.map(h => {
+    if (h.id !== habit.id) return h
+    return {
+      ...h,
+      focusSeconds: 0,
+      progress: 0,
+      doneToday: false,
+      skipped: false
     }
   }))
 }
@@ -1214,21 +1240,34 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
       
       {/* Кружок прогресса */}
-      <div style={{
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        background: habit.skipped
-          ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
-          : `conic-gradient(${
-              (habit.progress || 0) >= 100 ? '#22c55e' :
-              (habit.progress || 0) >= 50 ? '#a78bfa' :
-              (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
-            } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+<div
+  onClick={(e) => {
+    e.stopPropagation()
+    if (!habit.skipped) return
+    const count = (skipTapCount[habit.id] || 0) + 1
+    setSkipTapCount(prev => ({ ...prev, [habit.id]: count }))
+    if (count >= 4) {
+      unskipHabit(habit)
+      setSkipTapCount(prev => ({ ...prev, [habit.id]: 0 }))
+    }
+  }}
+  style={{
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: habit.skipped
+      ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
+      : `conic-gradient(${
+          (habit.progress || 0) >= 100 ? '#22c55e' :
+          (habit.progress || 0) >= 50 ? '#a78bfa' :
+          (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+        } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: habit.skipped ? 'pointer' : 'default'
+  }}
+>
         <div style={{
           width: 30,
           height: 30,
@@ -1247,25 +1286,42 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
         </div>
       </div>
 
-      {!habit.doneToday && !habit.skipped && (
-        <button 
-          onClick={(e) => {
-            e.stopPropagation()
-            skipHabit(habit)
-          }}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'rgba(251, 146, 60, 0.8)',
-            fontSize: 14,
-            cursor: 'pointer',
-            padding: '4px 6px'
-          }}
-          title="Пропустить"
-        >
-          ⏭
-        </button>
-      )}
+{habit.skipped ? (
+  <button
+    onClick={(e) => {
+      e.stopPropagation()
+      unskipHabit(habit)
+    }}
+    style={{
+      background: 'transparent',
+      border: 'none',
+      color: '#60a5fa',
+      fontSize: 12,
+      cursor: 'pointer',
+      padding: '4px 6px'
+    }}
+  >
+    Вернуть
+  </button>
+) : !habit.doneToday ? (
+  <button
+    onClick={(e) => {
+      e.stopPropagation()
+      skipHabit(habit)
+    }}
+    style={{
+      background: 'transparent',
+      border: 'none',
+      color: 'rgba(251, 146, 60, 0.8)',
+      fontSize: 14,
+      cursor: 'pointer',
+      padding: '4px 6px'
+    }}
+    title="Пропустить"
+  >
+    ⏭
+  </button>
+) : null}
 
       <button 
         onClick={(e) => {
@@ -1595,6 +1651,24 @@ onClick={async () => {
   }}
 >
   Завершить полностью ✓
+</button>
+<button
+  onClick={async () => {
+    setTimerRunning(false)
+    await skipHabit(timerHabit)
+    setTimerHabit(null)
+    setScreen('main')
+  }}
+  style={{
+    background: 'transparent',
+    border: 'none',
+    color: '#fb923c',
+    fontSize: 14,
+    cursor: 'pointer',
+    marginBottom: 12
+  }}
+>
+  Пропустить ⏭
 </button>
     </div>
   )
