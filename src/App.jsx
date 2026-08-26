@@ -15,6 +15,9 @@ const [currentStep, setCurrentStep] = useState(0)
 const [newDuration, setNewDuration] = useState(15)
 const [newTime, setNewTime] = useState('')
 const [newPriority, setNewPriority] = useState('normal')
+const [timerHabit, setTimerHabit] = useState(null)
+const [timerSeconds, setTimerSeconds] = useState(0)
+const [timerRunning, setTimerRunning] = useState(false)
   const [habits, setHabits] = useState([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [newHabitName, setNewHabitName] = useState('')
@@ -110,6 +113,34 @@ useEffect(() => {
         }
 const thirtyDaysAgo = new Date()
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+// Таймер
+useEffect(() => {
+  let interval = null
+
+  if (timerRunning && timerSeconds > 0) {
+    interval = setInterval(() => {
+      setTimerSeconds(prev => prev - 1)
+    }, 1000)
+  } else if (timerRunning && timerSeconds === 0) {
+    // Время вышло
+    setTimerRunning(false)
+    if (timerHabit) {
+      toggleHabit(timerHabit.id) // отмечаем выполненным
+      alert('Готово! Привычка отмечена ✓')
+      setTimerHabit(null)
+      setScreen('main')
+    }
+  }
+
+  return () => clearInterval(interval)
+}, [timerRunning, timerSeconds])
+const startTimer = (habit) => {
+  const minutes = habit.duration_minutes || 15
+  setTimerHabit(habit)
+  setTimerSeconds(minutes * 60)
+  setTimerRunning(true)
+  setScreen('timer')
+}
 
 const { data: activityLogs } = await supabase
   .from('habit_logs')
@@ -988,16 +1019,15 @@ if (showFullCalendar) {
           )}
         </div>
         
-        <div style={{ 
-          fontSize: 13, 
-          opacity: 0.5, 
-          marginBottom: 8,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}>
-          {habit.first_step}
-        </div>
+      <div style={{ 
+  fontSize: 13, 
+  opacity: 0.5, 
+  marginBottom: 8,
+  lineHeight: 1.35,
+  wordBreak: 'break-word'
+}}>
+  {habit.first_step}
+</div>
 
         {/* Время и длительность */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1052,7 +1082,24 @@ if (showFullCalendar) {
         >
           {habit.doneToday ? '✓' : ''}
         </button>
-
+<button 
+  onClick={() => startTimer(habit)}
+  style={{
+    width: 34,
+    height: 34,
+    borderRadius: '50%',
+    border: 'none',
+    background: 'rgba(139, 92, 246, 0.2)',
+    color: '#c4b5fd',
+    fontSize: 14,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  }}
+>
+  ▶
+</button>
         <button 
           onClick={() => deleteHabit(habit.id)}
           style={{
@@ -1257,7 +1304,116 @@ if (screen === 'add') {
       </div>
     )
   }
+// ===== Таймер =====
+if (screen === 'timer' && timerHabit) {
+  const mins = Math.floor(timerSeconds / 60)
+  const secs = timerSeconds % 60
+  const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  const total = (timerHabit.duration_minutes || 15) * 60
+  const progress = total > 0 ? ((total - timerSeconds) / total) * 100 : 0
 
+  return (
+    <div className="app" style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      minHeight: '80vh',
+      textAlign: 'center'
+    }}>
+      <div style={{ fontSize: 15, opacity: 0.6, marginBottom: 8 }}>
+        {timerHabit.name}
+      </div>
+      <div style={{ fontSize: 14, opacity: 0.4, marginBottom: 32 }}>
+        {timerHabit.first_step}
+      </div>
+
+      {/* Круг прогресса */}
+      <div style={{
+        width: 200,
+        height: 200,
+        borderRadius: '50%',
+        background: `conic-gradient(#8b5cf6 ${progress}%, rgba(255,255,255,0.08) 0)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 32,
+        position: 'relative'
+      }}>
+        <div style={{
+          width: 170,
+          height: 170,
+          borderRadius: '50%',
+          background: '#1a1a1f',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 42,
+          fontWeight: 700,
+          letterSpacing: 1
+        }}>
+          {timeStr}
+        </div>
+      </div>
+
+      {/* Кнопки управления */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <button
+          onClick={() => setTimerRunning(!timerRunning)}
+          style={{
+            padding: '14px 28px',
+            borderRadius: 16,
+            border: 'none',
+            background: timerRunning ? 'rgba(251, 146, 60, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+            color: timerRunning ? '#fb923c' : '#4ade80',
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          {timerRunning ? 'Пауза' : 'Продолжить'}
+        </button>
+
+        <button
+          onClick={() => {
+            setTimerRunning(false)
+            setTimerHabit(null)
+            setScreen('main')
+          }}
+          style={{
+            padding: '14px 28px',
+            borderRadius: 16,
+            border: 'none',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            fontSize: 16,
+            cursor: 'pointer'
+          }}
+        >
+          Отмена
+        </button>
+      </div>
+
+      <button
+        onClick={() => {
+          setTimerRunning(false)
+          toggleHabit(timerHabit.id)
+          setTimerHabit(null)
+          setScreen('main')
+        }}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: '#a78bfa',
+          fontSize: 14,
+          cursor: 'pointer'
+        }}
+      >
+        Завершить досрочно ✓
+      </button>
+    </div>
+  )
+}
   return null
 }
 
