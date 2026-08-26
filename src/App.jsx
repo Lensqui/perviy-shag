@@ -760,8 +760,8 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(249,115,22,0.1)', borderRadius: 12 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>0</div>
-        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>{skipped}</div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(59,130,246,0.1)', borderRadius: 12 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>
@@ -844,41 +844,34 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
         </div>
 
 {/* Кружок прогресса */}
-<div 
-  onClick={() => !habit.skipped && openHabitTimer(habit)}
-  style={{
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    background: habit.skipped
-      ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
-      : `conic-gradient(${
-          (habit.progress || 0) >= 100 ? '#22c55e' :
-          (habit.progress || 0) >= 50 ? '#a78bfa' :
-          (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
-        } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: habit.skipped ? 'default' : 'pointer',
-    position: 'relative'
-  }}
->
+<div style={{
+  width: 36,
+  height: 36,
+  borderRadius: '50%',
+  background: item.status === 'skipped'
+    ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
+    : `conic-gradient(${
+        progress >= 100 ? '#22c55e' :
+        progress >= 50 ? '#a78bfa' :
+        progress > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+      } ${progress}%, rgba(255,255,255,0.08) 0)`,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+}}>
   <div style={{
-    width: 30,
-    height: 30,
+    width: 26,
+    height: 26,
     borderRadius: '50%',
     background: '#1c1c22',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: habit.skipped || (habit.progress || 0) >= 100 ? 14 : 11,
+    fontSize: item.status === 'skipped' || progress >= 100 ? 13 : 10,
     fontWeight: 700,
-    color: habit.skipped ? '#fb923c' :
-           (habit.progress || 0) >= 100 ? '#4ade80' : 
-           (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
+    color: item.status === 'skipped' ? '#fb923c' : progress >= 100 ? '#4ade80' : '#e2e8f0'
   }}>
-    {habit.skipped ? '⏭' : (habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+    {item.status === 'skipped' ? '⏭' : progress >= 100 ? '✓' : `${progress}%`}
   </div>
 </div>
       </div>
@@ -1123,7 +1116,7 @@ onClick={() => !habit.skipped && !habit.doneToday && openHabitTimer(habit)}    s
       borderLeft: `3px solid ${habit.skipped ? '#fb923c' : color}`,
       position: 'relative',
     cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
-      opacity: habit.skipped ? 0.75 : 1
+opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
     }}
   >
     {/* Иконка */}
