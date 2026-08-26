@@ -114,13 +114,13 @@ useEffect(() => {
         }
 const thirtyDaysAgo = new Date()
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+const fromDate = thirtyDaysAgo.toISOString().slice(0, 10)
 
 const { data: activityLogs } = await supabase
   .from('habit_logs')
   .select('completed_at')
   .eq('telegram_id', tgUser.id)
-  .eq('status', 'done')
-  .gte('completed_at', thirtyDaysAgo.toISOString().slice(0, 10))
+  .gte('completed_at', fromDate)
 
 const activeDates = new Set((activityLogs || []).map(l => l.completed_at))
 setStreakDays(Array.from(activeDates))
@@ -440,7 +440,7 @@ const saveFocusProgress = async (habit, secondsSpent) => {
   }))
 
 
-if (progress >= 100) {
+if (newFocus > 0) {
     setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
   }
 }
@@ -475,6 +475,7 @@ const skipHabit = async (habit) => {
       skipped: true
     }
   }))
+  setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
 }
 const unskipHabit = async (habit) => {
   const telegram = window.Telegram?.WebApp
