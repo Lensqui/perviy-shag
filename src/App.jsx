@@ -137,15 +137,16 @@ if (habitsError) {
 
 const { data: logs } = await supabase
   .from('habit_logs')
-  .select('habit_id, focus_seconds')
+.select('habit_id, focus_seconds, status')
   .eq('telegram_id', tgUser.id)
   .eq('completed_at', today)
 
 const logsMap = {}
+const skippedSet = new Set()
 ;(logs || []).forEach(l => {
   logsMap[l.habit_id] = l.focus_seconds || 0
+  if (l.status === 'skipped') skippedSet.add(l.habit_id)
 })
-
 const habitsWithStatus = (habitsData || []).map(h => {
   const focus = logsMap[h.id] || 0
   const total = (h.duration_minutes || 15) * 60
@@ -154,7 +155,8 @@ const habitsWithStatus = (habitsData || []).map(h => {
     ...h,
     focusSeconds: focus,
     progress,
-    doneToday: progress >= 100
+    doneToday: progress >= 100,
+    skipped: skippedSet.has(h.id)
   }
 })
 
@@ -439,6 +441,38 @@ const saveFocusProgress = async (habit, secondsSpent) => {
     setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
   }
 }
+const skipHabit = async (habit) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id || !habit) return
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Удаляем старую запись если есть
+  await supabase.from('habit_logs')
+    .delete()
+    .eq('habit_id', habit.id)
+    .eq('completed_at', today)
+
+  await supabase.from('habit_logs').insert({
+    habit_id: habit.id,
+    telegram_id: tgUser.id,
+    completed_at: today,
+    focus_seconds: 0,
+    status: 'skipped'
+  })
+
+  setHabits(prev => prev.map(h => {
+    if (h.id !== habit.id) return h
+    return {
+      ...h,
+      focusSeconds: 0,
+      progress: 0,
+      doneToday: false,
+      skipped: true
+    }
+  }))
+}
 const deleteHabit = async (id) => {
   if (!confirm('Удалить эту привычку?')) return
 
@@ -517,7 +551,7 @@ const openDay = async (dateStr) => {
 
   const { data } = await supabase
     .from('habit_logs')
-    .select('habit_id, focus_seconds, habits(name, first_step, duration_minutes)')
+    .select('habit_id, focus_seconds, status, habits(name, first_step, duration_minutes)')
     .eq('telegram_id', tgUser.id)
     .eq('completed_at', dateStr)
 
@@ -691,17 +725,23 @@ if (showFullCalendar) {
     </div>
 {/* Сводка */}
 {(() => {
-  const totalFocus = selectedDayHabits.reduce((sum, item) => sum + (item.focus_seconds || 0), 0)
-  const focusMin = Math.round(totalFocus / 60)
-  const completed = selectedDayHabits.filter(item => {
-    const dur = (item.habits?.duration_minutes || 15) * 60
-    return (item.focus_seconds || 0) >= dur
-  }).length
-  const partial = selectedDayHabits.filter(item => {
-    const dur = (item.habits?.duration_minutes || 15) * 60
-    const f = item.focus_seconds || 0
-    return f > 0 && f < dur
-  }).length
+const totalFocus = selectedDayHabits.reduce((sum, item) => sum + (item.focus_seconds || 0), 0)
+const focusMin = Math.round(totalFocus / 60)
+
+const completed = selectedDayHabits.filter(item => {
+  if (item.status === 'skipped') return false
+  const dur = (item.habits?.duration_minutes || 15) * 60
+  return (item.focus_seconds || 0) >= dur
+}).length
+
+const partial = selectedDayHabits.filter(item => {
+  if (item.status === 'skipped') return false
+  const dur = (item.habits?.duration_minutes || 15) * 60
+  const f = item.focus_seconds || 0
+  return f > 0 && f < dur
+}).length
+
+const skipped = selectedDayHabits.filter(item => item.status === 'skipped').length
 
   return (
     <div style={{
@@ -721,6 +761,7 @@ if (showFullCalendar) {
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(249,115,22,0.1)', borderRadius: 12 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>0</div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>{skipped}</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(59,130,246,0.1)', borderRadius: 12 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>
@@ -802,35 +843,44 @@ if (showFullCalendar) {
           </div>
         </div>
 
-        {/* Кружок прогресса */}
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          background: `conic-gradient(${
-            progress >= 100 ? '#22c55e' :
-            progress >= 50 ? '#a78bfa' :
-            progress > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
-          } ${progress}%, rgba(255,255,255,0.08) 0)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: '#1c1c22',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: progress >= 100 ? 13 : 10,
-            fontWeight: 700,
-            color: progress >= 100 ? '#4ade80' : '#e2e8f0'
-          }}>
-            {progress >= 100 ? '✓' : `${progress}%`}
-          </div>
-        </div>
+{/* Кружок прогресса */}
+<div 
+  onClick={() => !habit.skipped && openHabitTimer(habit)}
+  style={{
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: habit.skipped
+      ? 'conic-gradient(#fb923c 100%, rgba(255,255,255,0.08) 0)'
+      : `conic-gradient(${
+          (habit.progress || 0) >= 100 ? '#22c55e' :
+          (habit.progress || 0) >= 50 ? '#a78bfa' :
+          (habit.progress || 0) > 0 ? '#fb923c' : 'rgba(255,255,255,0.12)'
+        } ${(habit.progress || 0)}%, rgba(255,255,255,0.08) 0)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: habit.skipped ? 'default' : 'pointer',
+    position: 'relative'
+  }}
+>
+  <div style={{
+    width: 30,
+    height: 30,
+    borderRadius: '50%',
+    background: '#1c1c22',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: habit.skipped || (habit.progress || 0) >= 100 ? 14 : 11,
+    fontWeight: 700,
+    color: habit.skipped ? '#fb923c' :
+           (habit.progress || 0) >= 100 ? '#4ade80' : 
+           (habit.progress || 0) > 0 ? '#e2e8f0' : 'rgba(255,255,255,0.4)'
+  }}>
+    {habit.skipped ? '⏭' : (habit.progress || 0) >= 100 ? '✓' : `${habit.progress || 0}%`}
+  </div>
+</div>
       </div>
     )
   })
@@ -1211,9 +1261,26 @@ if (showFullCalendar) {
   >
     ×
   </button>
+  {!habit.doneToday && !habit.skipped && (
+  <button 
+    onClick={() => skipHabit(habit)}
+    style={{
+      background: 'transparent',
+      border: 'none',
+      color: 'rgba(251, 146, 60, 0.8)',
+      fontSize: 12,
+      cursor: 'pointer',
+      padding: '4px 6px'
+    }}
+    title="Пропустить"
+  >
+    ⏭
+  </button>
+)}
 </div>
     </div>
   )
+  
 })}
 
           <button className="add-habit-btn" onClick={() => setScreen('add')}>+ Добавить привычку</button>
