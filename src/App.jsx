@@ -1447,15 +1447,20 @@ if (screen === 'timer' && timerHabit) {
   </button>
 
   <button
-    onClick={async () => {
-      // Сохраняем прогресс и выходим
-      const total = (timerHabit.duration_minutes || 15) * 60
-      const spent = total - timerSeconds
-      if (spent > 0) await saveFocusProgress(timerHabit, spent)
-      setTimerRunning(false)
-      setTimerHabit(null)
-      setScreen('main')
-    }}
+onClick={async () => {
+  const total = (timerHabit.duration_minutes || 15) * 60
+  const alreadySpent = timerHabit.focusSeconds || 0
+  const remainingAtStart = total - alreadySpent
+  const spentSession = Math.max(0, remainingAtStart - timerSeconds)
+
+  if (spentSession > 0) {
+    await saveFocusProgress(timerHabit, spentSession)
+  }
+
+  setTimerRunning(false)
+  setTimerHabit(null)
+  setScreen('main')
+}}
     style={{
       padding: '14px 24px',
       borderRadius: 16,
