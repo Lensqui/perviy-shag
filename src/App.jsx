@@ -197,7 +197,26 @@ if (diaryError) {
       localStorage.setItem('diary', JSON.stringify(diaryEntries))
     }
   }, [habits, streak, diaryEntries, isLoaded])
+  // Таймер
+useEffect(() => {
+  let interval = null
 
+  if (timerRunning && timerSeconds > 0) {
+    interval = setInterval(() => {
+      setTimerSeconds(prev => prev - 1)
+    }, 1000)
+  } else if (timerRunning && timerSeconds === 0 && timerHabit) {
+    setTimerRunning(false)
+    toggleHabit(timerHabit.id)
+    alert('Готово! Привычка отмечена ✓')
+    setTimerHabit(null)
+    setScreen('main')
+  }
+
+  return () => {
+    if (interval) clearInterval(interval)
+  }
+}, [timerRunning, timerSeconds])
   const finishOnboarding = () => {
     localStorage.setItem('onboardingDone', 'true')
     setScreen('main')
@@ -1277,26 +1296,6 @@ if (screen === 'add') {
     )
   }
 
-  // Таймер
-useEffect(() => {
-  let interval = null
-
-  if (timerRunning && timerSeconds > 0) {
-    interval = setInterval(() => {
-      setTimerSeconds(prev => prev - 1)
-    }, 1000)
-  } else if (timerRunning && timerSeconds === 0 && timerHabit) {
-    setTimerRunning(false)
-    toggleHabit(timerHabit.id)
-    alert('Готово! Привычка отмечена ✓')
-    setTimerHabit(null)
-    setScreen('main')
-  }
-
-  return () => {
-    if (interval) clearInterval(interval)
-  }
-}, [timerRunning, timerSeconds])
 const openHabitTimer = (habit) => {
   const minutes = habit.duration_minutes || 15
   setTimerHabit(habit)
