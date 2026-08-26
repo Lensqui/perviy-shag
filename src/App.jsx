@@ -557,6 +557,14 @@ const openDay = async (dateStr) => {
 
   setSelectedDayHabits(data || [])
 }
+const formatFocus = (seconds) => {
+  const totalMin = Math.round((seconds || 0) / 60)
+  if (totalMin <= 0) return '—'
+  if (totalMin < 60) return `${totalMin}м`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m > 0 ? `${h}ч ${m}м` : `${h}ч`
+}
   // ===== Нижняя навигация =====
   const Nav = () => (
     <div className="nav">
@@ -759,13 +767,12 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Частично</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(249,115,22,0.1)', borderRadius: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>0</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#fb923c' }}>{skipped}</div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Пропущено</div>
       </div>
       <div style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(59,130,246,0.1)', borderRadius: 12 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>
-          {focusMin > 0 ? `${focusMin}м` : '—'}
+       {formatFocus(totalFocus)}
         </div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Фокус</div>
       </div>
@@ -839,7 +846,7 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
             {item.habits?.name || 'Привычка'}
           </div>
           <div style={{ fontSize: 12, opacity: 0.5, marginTop: 2 }}>
-            {focusMin > 0 ? `Фокус: ${focusMin} мин` : item.habits?.first_step || ''}
+        {focus > 0 ? `Фокус: ${formatFocus(focus)}` : (item.habits?.first_step || '')}
           </div>
         </div>
 
