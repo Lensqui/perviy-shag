@@ -113,34 +113,6 @@ useEffect(() => {
         }
 const thirtyDaysAgo = new Date()
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-// Таймер
-useEffect(() => {
-  let interval = null
-
-  if (timerRunning && timerSeconds > 0) {
-    interval = setInterval(() => {
-      setTimerSeconds(prev => prev - 1)
-    }, 1000)
-  } else if (timerRunning && timerSeconds === 0) {
-    // Время вышло
-    setTimerRunning(false)
-    if (timerHabit) {
-      toggleHabit(timerHabit.id) // отмечаем выполненным
-      alert('Готово! Привычка отмечена ✓')
-      setTimerHabit(null)
-      setScreen('main')
-    }
-  }
-
-  return () => clearInterval(interval)
-}, [timerRunning, timerSeconds])
-const startTimer = (habit) => {
-  const minutes = habit.duration_minutes || 15
-  setTimerHabit(habit)
-  setTimerSeconds(minutes * 60)
-  setTimerRunning(true)
-  setScreen('timer')
-}
 
 const { data: activityLogs } = await supabase
   .from('habit_logs')
@@ -1083,7 +1055,7 @@ if (showFullCalendar) {
           {habit.doneToday ? '✓' : ''}
         </button>
 <button 
-  onClick={() => startTimer(habit)}
+  onClick={() => openHabitTimer(habit)}
   style={{
     width: 34,
     height: 34,
@@ -1304,6 +1276,34 @@ if (screen === 'add') {
       </div>
     )
   }
+
+  // Таймер
+useEffect(() => {
+  let interval = null
+
+  if (timerRunning && timerSeconds > 0) {
+    interval = setInterval(() => {
+      setTimerSeconds(prev => prev - 1)
+    }, 1000)
+  } else if (timerRunning && timerSeconds === 0 && timerHabit) {
+    setTimerRunning(false)
+    toggleHabit(timerHabit.id)
+    alert('Готово! Привычка отмечена ✓')
+    setTimerHabit(null)
+    setScreen('main')
+  }
+
+  return () => {
+    if (interval) clearInterval(interval)
+  }
+}, [timerRunning, timerSeconds])
+const openHabitTimer = (habit) => {
+  const minutes = habit.duration_minutes || 15
+  setTimerHabit(habit)
+  setTimerSeconds(minutes * 60)
+  setTimerRunning(false) // не запускаем сразу
+  setScreen('timer')
+}
 // ===== Таймер =====
 if (screen === 'timer' && timerHabit) {
   const mins = Math.floor(timerSeconds / 60)
