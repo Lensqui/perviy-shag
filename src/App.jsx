@@ -6,6 +6,8 @@ const tg = window.Telegram?.WebApp
 function App() {
   const [skipTapCount, setSkipTapCount] = useState({})
   const [user, setUser] = useState(null)
+  const [statsPeriod, setStatsPeriod] = useState('week') 
+const [statsData, setStatsData] = useState(null)
   const [streakDays, setStreakDays] = useState([])
   const [screen, setScreen] = useState('loading')
 const [showFullCalendar, setShowFullCalendar] = useState(false)
@@ -584,6 +586,108 @@ const openDay = async (dateStr) => {
 
   setSelectedDayHabits(data || [])
 }
+const loadStats = async (period = 'week') => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) return
+
+  const now = new Date()
+  let fromDate = new Date()
+
+  if (period === 'week') {
+    const day = now.getDay() || 7
+    fromDate.setDate(now.getDate() - day + 1)
+  } else if (period === 'month') {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  } else {
+    fromDate = new Date(now.getFullYear(), 0, 1)
+  }
+
+  const from = fromDate.toISOString().slice(0, 10)
+  const to = now.toISOString().slice(0, 10)
+
+  const { data: logs } = await supabase
+    .from('habit_logs')
+    .select('habit_id, focus_seconds, status, completed_at, habits(name, duration_minutes)')
+    .eq('telegram_id', tgUser.id)
+    .gte('completed_at', from)
+    .lte('completed_at', to)
+
+  const list = logs || []
+
+  const totalFocus = list.reduce((s, l) => s + (l.focus_seconds || 0), 0)
+  const done = list.filter(l => l.status === 'done').length
+  const skipped = list.filter(l => l.status === 'skipped').length
+  const partial = list.filter(l => l.status === 'progress' && (l.focus_seconds || 0) > 0).length
+  const totalTasks = done + skipped + partial
+  const productivity = totalTasks > 0 ? Math.round((done / totalTasks) * 100) : 0
+
+  // серия подряд (done дни)
+  const doneDates = [...new Set(
+    list.filter(l => l.status === 'done').map(l => l.completed_at)
+  )].sort().reverse()
+
+  let streakCount = 0
+  let cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
+
+  for (;;) {
+    const ds = cursor.toISOString().slice(0, 10)
+    if (doneDates.includes(ds)) {
+      streakCount++
+      cursor.setDate(cursor.getDate() - 1)
+    } else if (ds === to && streakCount === 0) {
+      cursor.setDate(cursor.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  // фокус по дням недели (для графика)
+  const byDay = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 0: 0 }
+  list.forEach(l => {
+    const d = new Date(l.completed_at + 'T12:00:00')
+    const wd = d.getDay()
+    byDay[wd] = (byDay[wd] || 0) + (l.focus_seconds || 0)
+  })
+
+  // по привычкам
+  const byHabit = {}
+  list.forEach(l => {
+    const id = l.habit_id
+    if (!byHabit[id]) {
+      byHabit[id] = {
+        name: l.habits?.name || 'Привычка',
+        focus: 0,
+        done: 0,
+        total: 0,
+        duration: (l.habits?.duration_minutes || 15) * 60
+      }
+    }
+    byHabit[id].focus += l.focus_seconds || 0
+    byHabit[id].total += 1
+    if (l.status === 'done') byHabit[id].done += 1
+  })
+
+  const habitsStats = Object.values(byHabit).map(h => ({
+    ...h,
+    percent: h.total > 0 ? Math.round((h.done / h.total) * 100) : 0
+  })).sort((a, b) => b.percent - a.percent)
+
+  setStatsData({
+    totalFocus,
+    done,
+    skipped,
+    partial,
+    totalTasks,
+    productivity,
+    streakCount,
+    byDay,
+    habitsStats,
+    from,
+    to
+  })
+}
 const formatFocus = (seconds) => {
   const totalMin = Math.round((seconds || 0) / 60)
   if (totalMin <= 0) return '—'
@@ -594,21 +698,30 @@ const formatFocus = (seconds) => {
 }
   // ===== Нижняя навигация =====
   const Nav = () => (
-    <div className="nav">
-      <button 
-        className={['main', 'lazy', 'chain', 'add'].includes(screen) ? 'nav-item active' : 'nav-item'}
-        onClick={() => setScreen('main')}
-      >
-        Сегодня
-      </button>
-      <button 
-        className={screen === 'diary' ? 'nav-item active' : 'nav-item'}
-        onClick={() => setScreen('diary')}
-      >
-        Дневник
-      </button>
-    </div>
-  )
+  <div className="nav">
+    <button
+      className={['main', 'lazy', 'chain', 'add', 'timer'].includes(screen) ? 'nav-item active' : 'nav-item'}
+      onClick={() => setScreen('main')}
+    >
+      Сегодня
+    </button>
+    <button
+      className={screen === 'stats' ? 'nav-item active' : 'nav-item'}
+      onClick={() => {
+        setScreen('stats')
+        loadStats(statsPeriod)
+      }}
+    >
+      Статистика
+    </button>
+    <button
+      className={screen === 'diary' ? 'nav-item active' : 'nav-item'}
+      onClick={() => setScreen('diary')}
+    >
+      Дневник
+    </button>
+  </div>
+)
 // ===== Полный календарь =====
 if (showFullCalendar) {
   const year = currentMonth.getFullYear()
@@ -1354,7 +1467,228 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
       </div>
     )
   }
+// ===== Статистика =====
+if (screen === 'stats') {
+  const formatFocus = (sec) => {
+    const m = Math.round((sec || 0) / 60)
+    if (m <= 0) return '0м'
+    if (m < 60) return `${m}м`
+    const h = Math.floor(m / 60)
+    const mins = m % 60
+    return mins > 0 ? `${h}ч ${mins}м` : `${h}ч`
+  }
 
+  const d = statsData
+
+  return (
+    <div className="app" style={{ textAlign: 'left', paddingBottom: 100 }}>
+      <h2 style={{ marginBottom: 4 }}>Статистика</h2>
+      <p style={{ opacity: 0.5, fontSize: 13, marginBottom: 20 }}>
+        Твой прогресс на пути к лучшей версии себя
+      </p>
+
+      {/* Период */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 20,
+        background: 'rgba(255,255,255,0.04)',
+        borderRadius: 14,
+        padding: 4
+      }}>
+        {[
+          { id: 'week', label: 'Неделя' },
+          { id: 'month', label: 'Месяц' },
+          { id: 'year', label: 'Год' }
+        ].map(p => (
+          <button
+            key={p.id}
+            onClick={() => {
+              setStatsPeriod(p.id)
+              loadStats(p.id)
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: 12,
+              border: 'none',
+              background: statsPeriod === p.id ? '#8b5cf6' : 'transparent',
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {!d ? (
+        <p style={{ opacity: 0.5, textAlign: 'center' }}>Загрузка...</p>
+      ) : (
+        <>
+          {/* Общая картина */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 16
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 16, fontSize: 15 }}>
+              Общая картина
+            </div>
+
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
+              {/* Круг продуктивности */}
+              <div style={{
+                width: 100,
+                height: 100,
+                borderRadius: '50%',
+                background: `conic-gradient(#8b5cf6 ${d.productivity}%, rgba(255,255,255,0.08) 0)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <div style={{
+                  width: 78,
+                  height: 78,
+                  borderRadius: '50%',
+                  background: '#1a1a1f',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ fontSize: 22, fontWeight: 700 }}>{d.productivity}%</div>
+                  <div style={{ fontSize: 10, opacity: 0.5 }}>Продуктивность</div>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>⏱ Фокус-время</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{formatFocus(d.totalFocus)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>✓ Выполнено</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{d.done} из {d.totalTasks}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>🔥 Серия</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#fb923c' }}>{d.streakCount} дн</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>⏭ Пропущено</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#fb923c' }}>{d.skipped}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Фокус по дням */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>Фокус-время</div>
+              <div style={{ fontSize: 13, opacity: 0.6 }}>{formatFocus(d.totalFocus)}</div>
+            </div>
+
+            {(() => {
+              const days = [
+                { k: 1, label: 'Пн' },
+                { k: 2, label: 'Вт' },
+                { k: 3, label: 'Ср' },
+                { k: 4, label: 'Чт' },
+                { k: 5, label: 'Пт' },
+                { k: 6, label: 'Сб' },
+                { k: 0, label: 'Вс' }
+              ]
+              const maxSec = Math.max(...days.map(x => d.byDay[x.k] || 0), 1)
+
+              return (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120 }}>
+                  {days.map(day => {
+                    const sec = d.byDay[day.k] || 0
+                    const h = Math.round((sec / maxSec) * 100)
+                    return (
+                      <div key={day.k} style={{ flex: 1, textAlign: 'center' }}>
+                        <div style={{
+                          height: 100,
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                          justifyContent: 'center'
+                        }}>
+                          <div style={{
+                            width: '70%',
+                            height: `${Math.max(h, 4)}%`,
+                            background: sec > 0 ? 'linear-gradient(180deg, #a78bfa, #8b5cf6)' : 'rgba(255,255,255,0.08)',
+                            borderRadius: 8,
+                            minHeight: 4
+                          }} />
+                        </div>
+                        <div style={{ fontSize: 11, opacity: 0.5, marginTop: 6 }}>{day.label}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* По привычкам */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 16
+          }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 16 }}>
+              Продуктивность по привычкам
+            </div>
+
+            {d.habitsStats.length === 0 ? (
+              <p style={{ opacity: 0.5, fontSize: 13 }}>Пока нет данных</p>
+            ) : (
+              d.habitsStats.slice(0, 6).map((h, i) => {
+                const colors = ['#22c55e', '#a78bfa', '#60a5fa', '#fb923c', '#f472b6', '#fbbf24']
+                const c = colors[i % colors.length]
+                return (
+                  <div key={i} style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{h.name}</div>
+                      <div style={{ fontSize: 13, color: c, fontWeight: 600 }}>{h.percent}%</div>
+                    </div>
+                    <div style={{
+                      height: 8,
+                      background: 'rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${h.percent}%`,
+                        background: c,
+                        borderRadius: 8
+                      }} />
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </>
+      )}
+
+      <Nav />
+    </div>
+  )
+}
   // ===== Дневник =====
   if (screen === 'diary') {
     return (
