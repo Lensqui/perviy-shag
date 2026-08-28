@@ -27,6 +27,11 @@ const [timerRunning, setTimerRunning] = useState(false)
   const [newFirstStep, setNewFirstStep] = useState('')
   const [streak, setStreak] = useState(0)
   const [diaryEntries, setDiaryEntries] = useState([])
+      const [diaryWeekOffset, setDiaryWeekOffset] = useState(0) 
+const [selectedDiaryDate, setSelectedDiaryDate] = useState(
+  () => new Date().toISOString().slice(0, 10)
+)
+const [showDiaryForm, setShowDiaryForm] = useState(false)
   const [diaryAnswers, setDiaryAnswers] = useState({ q1: '', q2: '', q3: '' })
   const [currentChain, setCurrentChain] = useState([])
   const [onboardingStep, setOnboardingStep] = useState(0)
@@ -607,11 +612,7 @@ const saveDiary = async () => {
 
     setDiaryEntries(prev => [data, ...prev])
     setDiaryAnswers({ q1: '', q2: '', q3: '' })
-    const [diaryWeekOffset, setDiaryWeekOffset] = useState(0) // 0 = текущая неделя
-const [selectedDiaryDate, setSelectedDiaryDate] = useState(
-  () => new Date().toISOString().slice(0, 10)
-)
-const [showDiaryForm, setShowDiaryForm] = useState(false)
+
     alert('Запись сохранена')
   } catch (err) {
     console.error(err)
