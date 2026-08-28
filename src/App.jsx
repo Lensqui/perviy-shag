@@ -594,8 +594,7 @@ const saveDiary = async () => {
         telegram_id: tgUser.id,
         q1: diaryAnswers.q1 || null,
         q2: diaryAnswers.q2 || null,
-        q3: diaryAnswers.q3 || null,
-        entry_date: new Date().toISOString().slice(0, 10)
+     entry_date: selectedDiaryDate || new Date().toISOString().slice(0, 10)
       })
       .select()
       .single()
@@ -608,6 +607,11 @@ const saveDiary = async () => {
 
     setDiaryEntries(prev => [data, ...prev])
     setDiaryAnswers({ q1: '', q2: '', q3: '' })
+    const [diaryWeekOffset, setDiaryWeekOffset] = useState(0) // 0 = текущая неделя
+const [selectedDiaryDate, setSelectedDiaryDate] = useState(
+  () => new Date().toISOString().slice(0, 10)
+)
+const [showDiaryForm, setShowDiaryForm] = useState(false)
     alert('Запись сохранена')
   } catch (err) {
     console.error(err)
@@ -1771,38 +1775,271 @@ if (screen === 'stats') {
     </div>
   )
 }
-  // ===== Дневник =====
-  if (screen === 'diary') {
-    return (
-      <div className="app">
-        <h2>Дневник</h2>
+// ===== Дневник =====
+if (screen === 'diary') {
+  // неделя
+  const weekStart = new Date()
+  const day = weekStart.getDay() || 7
+  weekStart.setDate(weekStart.getDate() - day + 1 + diaryWeekOffset * 7)
+  weekStart.setHours(12, 0, 0, 0)
 
-        <div className="form" style={{ marginBottom: 30 }}>
-          <label>Что сегодня мешало начать?</label>
-          <input type="text" value={diaryAnswers.q1} onChange={e => setDiaryAnswers({...diaryAnswers, q1: e.target.value})} placeholder="Лень, усталость, отвлечения..." />
-          <label>Какой самый маленький шаг я сделал?</label>
-          <input type="text" value={diaryAnswers.q2} onChange={e => setDiaryAnswers({...diaryAnswers, q2: e.target.value})} placeholder="Открыл ноутбук..." />
-          <label>Что завтра сделаю ещё проще?</label>
-          <input type="text" value={diaryAnswers.q3} onChange={e => setDiaryAnswers({...diaryAnswers, q3: e.target.value})} placeholder="Ещё меньший шаг..." />
-          <button className="main-button" onClick={saveDiary}>Сохранить запись</button>
-        </div>
-
-        <h3 style={{ marginBottom: 12, textAlign: 'left' }}>Предыдущие записи</h3>
-        {diaryEntries.length === 0 && <p style={{ opacity: 0.6 }}>Записей пока нет</p>}
-        {diaryEntries.map(entry => (
-          <div key={entry.id} className="habit-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-    <div style={{ fontSize: 13, opacity: 0.6 }}>
-    {entry.entry_date || entry.created_at?.slice(0, 10)}
-</div>
-            {entry.q1 && <div><strong>Мешало:</strong> {entry.q1}</div>}
-            {entry.q2 && <div><strong>Сделал:</strong> {entry.q2}</div>}
-            {entry.q3 && <div><strong>Завтра:</strong> {entry.q3}</div>}
-          </div>
-        ))}
-        <Nav />
-      </div>
+  const weekDays = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(weekStart)
+    d.setDate(weekStart.getDate() + i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const hasEntry = diaryEntries.some(
+      e => (e.entry_date || e.created_at?.slice(0, 10)) === dateStr
     )
-  }
+    return {
+      dateStr,
+      dayNum: d.getDate(),
+      label: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][i],
+      month: d.toLocaleDateString('ru-RU', { month: 'short' }),
+      hasEntry,
+      isSelected: dateStr === selectedDiaryDate,
+      isToday: dateStr === new Date().toISOString().slice(0, 10)
+    }
+  })
+
+  const dayEntries = diaryEntries.filter(
+    e => (e.entry_date || e.created_at?.slice(0, 10)) === selectedDiaryDate
+  )
+
+  const selectedLabel = new Date(selectedDiaryDate + 'T12:00:00')
+    .toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  return (
+    <div className="app" style={{ textAlign: 'left', paddingBottom: 100 }}>
+      {/* Заголовок */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+        <div>
+          <h2 style={{ margin: 0, marginBottom: 4 }}>Дневник ✎</h2>
+          <p style={{ margin: 0, opacity: 0.45, fontSize: 13 }}>
+            Твои мысли, идеи и прогресс
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setSelectedDiaryDate(new Date().toISOString().slice(0, 10))
+            setShowDiaryForm(true)
+          }}
+          style={{
+            background: 'rgba(139, 92, 246, 0.2)',
+            border: 'none',
+            color: '#c4b5fd',
+            fontSize: 13,
+            fontWeight: 600,
+            padding: '10px 14px',
+            borderRadius: 12,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          + Запись
+        </button>
+      </div>
+
+      {/* Неделя */}
+      <div style={{
+        display: 'flex',
+        gap: 6,
+        marginTop: 18,
+        marginBottom: 20,
+        overflowX: 'auto'
+      }}>
+        {weekDays.map(d => (
+          <button
+            key={d.dateStr}
+            onClick={() => {
+              setSelectedDiaryDate(d.dateStr)
+              setShowDiaryForm(false)
+            }}
+            style={{
+              flex: '1 0 44px',
+              padding: '10px 4px',
+              borderRadius: 14,
+              border: d.isSelected ? '1.5px solid #8b5cf6' : '1px solid transparent',
+              background: d.isSelected
+                ? 'rgba(139, 92, 246, 0.15)'
+                : 'rgba(255,255,255,0.04)',
+              color: '#fff',
+              cursor: 'pointer',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>{d.label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{d.dayNum}</div>
+            <div style={{ fontSize: 10, opacity: 0.4, marginBottom: 4 }}>{d.month}</div>
+            <div style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              margin: '0 auto',
+              background: d.hasEntry ? '#22c55e' : 'rgba(255,255,255,0.12)'
+            }} />
+          </button>
+        ))}
+      </div>
+
+      {/* Форма новой записи */}
+      {showDiaryForm && (
+        <div style={{
+          background: 'rgba(255,255,255,0.04)',
+          borderRadius: 20,
+          padding: 18,
+          marginBottom: 16
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>
+            Новая запись · {selectedLabel}
+          </div>
+
+          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+            🎯 Сегодняшний фокус
+          </label>
+          <input
+            type="text"
+            value={diaryAnswers.q3}
+            onChange={e => setDiaryAnswers({ ...diaryAnswers, q3: e.target.value })}
+            placeholder="Главное на сегодня..."
+            style={{ marginBottom: 14 }}
+          />
+
+          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+            ✓ Что получилось
+          </label>
+          <input
+            type="text"
+            value={diaryAnswers.q2}
+            onChange={e => setDiaryAnswers({ ...diaryAnswers, q2: e.target.value })}
+            placeholder="Самый маленький шаг..."
+            style={{ marginBottom: 14 }}
+          />
+
+          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+            💡 Что можно улучшить
+          </label>
+          <input
+            type="text"
+            value={diaryAnswers.q1}
+            onChange={e => setDiaryAnswers({ ...diaryAnswers, q1: e.target.value })}
+            placeholder="Что мешало, что изменить..."
+            style={{ marginBottom: 16 }}
+          />
+
+          <button
+            className="main-button"
+            onClick={async () => {
+              await saveDiary()
+              setShowDiaryForm(false)
+            }}
+          >
+            Сохранить
+          </button>
+          <button
+            className="back-button"
+            onClick={() => setShowDiaryForm(false)}
+          >
+            Отмена
+          </button>
+        </div>
+      )}
+
+      {/* Записи выбранного дня */}
+      {!showDiaryForm && dayEntries.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          opacity: 0.45
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📝</div>
+          <div style={{ fontSize: 14 }}>Нет записей за этот день</div>
+          <button
+            onClick={() => setShowDiaryForm(true)}
+            style={{
+              marginTop: 16,
+              background: 'rgba(139, 92, 246, 0.2)',
+              border: 'none',
+              color: '#c4b5fd',
+              padding: '10px 18px',
+              borderRadius: 12,
+              cursor: 'pointer',
+              fontSize: 13
+            }}
+          >
+            Создать запись
+          </button>
+        </div>
+      )}
+
+      {!showDiaryForm && dayEntries.map(entry => (
+        <div
+          key={entry.id}
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 20,
+            padding: 18,
+            marginBottom: 14
+          }}
+        >
+          {/* Дата */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(139, 92, 246, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16
+            }}>
+              📅
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15, textTransform: 'capitalize' }}>
+                {selectedLabel}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.45 }}>
+                {entry.created_at
+                  ? new Date(entry.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+                  : 'запись'}
+              </div>
+            </div>
+          </div>
+
+          {entry.q3 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>
+                🎯 Сегодняшний фокус
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q3}</div>
+            </div>
+          )}
+
+          {entry.q2 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, color: '#4ade80', fontWeight: 600, marginBottom: 4 }}>
+                ✓ Что получилось
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q2}</div>
+            </div>
+          )}
+
+          {entry.q1 && (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 13, color: '#fb923c', fontWeight: 600, marginBottom: 4 }}>
+                💡 Что можно улучшить
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q1}</div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      <Nav />
+    </div>
+  )
+}
 
   // ===== Добавление привычки =====
 if (screen === 'add') {
