@@ -287,12 +287,15 @@ useEffect(() => {
   }
 }, [timerRunning, timerSeconds])
 const openHabitTimer = (habit) => {
-  const total = (habit.duration_minutes || 15) * 60
+  const isQuick = !!habit._quick
+  const total = isQuick ? 2 * 60 : (habit.duration_minutes || 15) * 60
   const alreadySpent = habit.focusSeconds || 0
-  const remaining = Math.max(0, total - alreadySpent)
+  const remaining = isQuick
+    ? 2 * 60
+    : Math.max(0, total - alreadySpent)
 
   setTimerHabit(habit)
-  setTimerSeconds(remaining > 0 ? remaining : total) // если уже 100% — показываем полное
+  setTimerSeconds(remaining > 0 ? remaining : total)
   setTimerRunning(false)
   setScreen('timer')
 }
@@ -361,21 +364,7 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     setNewDuration(15)
     setNewTime('')
     setNewPriority('normal')
-    if (screen === 'loading' || !isLoaded) {
-  return (
-    <div className="app" style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '80vh'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>⚡</div>
-        <div style={{ opacity: 0.5, fontSize: 14 }}>Загрузка...</div>
-      </div>
-    </div>
-  )
-}
+    
     if (screen === 'onboarding') {
       localStorage.setItem('onboardingDone', 'true')
     }
@@ -1271,6 +1260,21 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
   }
 
   // ===== Главный экран =====
+  if (screen === 'loading' || !isLoaded) {
+  return (
+    <div className="app" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '80vh'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>⚡</div>
+        <div style={{ opacity: 0.5, fontSize: 14 }}>Загрузка...</div>
+      </div>
+    </div>
+  )
+}
   if (screen === 'main') {
     return (
       <div className="app">
@@ -1411,6 +1415,11 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 )}
 {[...habits]
   .sort((a, b) => {
+    // сначала невыполненные и не пропущенные
+    const aDone = a.doneToday || a.skipped ? 1 : 0
+    const bDone = b.doneToday || b.skipped ? 1 : 0
+    if (aDone !== bDone) return aDone - bDone
+    // важные выше
     if (a.priority === 'high' && b.priority !== 'high') return -1
     if (b.priority === 'high' && a.priority !== 'high') return 1
     return 0
@@ -1515,6 +1524,36 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
         wordBreak: 'break-word'
       }}>
         {habit.first_step}
+        <div style={{
+  fontSize: 14,
+  lineHeight: 1.4,
+  color: 'rgba(255,255,255,0.85)',
+  marginBottom: 8,
+  fontWeight: 500
+}}>
+  {habit.first_step}
+</div>
+
+{!habit.doneToday && !habit.skipped && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation()
+      openHabitTimer({ ...habit, duration_minutes: 2, _quick: true })
+    }}
+    style={{
+      fontSize: 12,
+      padding: '6px 12px',
+      borderRadius: 20,
+      border: 'none',
+      background: 'rgba(139, 92, 246, 0.2)',
+      color: '#c4b5fd',
+      cursor: 'pointer',
+      marginBottom: 6
+    }}
+  >
+    ⚡ 2 минуты
+  </button>
+)}
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -2505,6 +2544,19 @@ if (screen === 'timer' && timerHabit) {
       <div style={{ fontSize: 15, opacity: 0.6, marginBottom: 8 }}>
         {timerHabit.name}
       </div>
+      {timerHabit._quick && (
+  <div style={{
+    fontSize: 12,
+    color: '#a78bfa',
+    marginBottom: 8,
+    background: 'rgba(139, 92, 246, 0.15)',
+    padding: '4px 12px',
+    borderRadius: 20,
+    display: 'inline-block'
+  }}>
+    Режим 2 минуты
+  </div>
+)}
       <div style={{ fontSize: 14, opacity: 0.4, marginBottom: 32 }}>
         {timerHabit.first_step}
       </div>
