@@ -33,7 +33,16 @@ const [selectedDiaryDate, setSelectedDiaryDate] = useState(
 )
 const [showDiaryForm, setShowDiaryForm] = useState(false)
 const [editingEntryId, setEditingEntryId] = useState(null)
-  const [diaryAnswers, setDiaryAnswers] = useState({ q1: '', q2: '', q3: '' })
+const [diaryAnswers, setDiaryAnswers] = useState({
+  q1: '',
+  q2: '',
+  q3: '',
+  gratitude: '',
+  free_thoughts: '',
+  rating_done: '',
+  rating_improve: '',
+  tags: ''
+})
   const [currentChain, setCurrentChain] = useState([])
   const [onboardingStep, setOnboardingStep] = useState(0)
 
@@ -597,11 +606,18 @@ const saveDiary = async () => {
     if (editingEntryId) {
       const { data, error } = await supabase
         .from('diary_entries')
-        .update({
-          q1: diaryAnswers.q1 || null,
-          q2: diaryAnswers.q2 || null,
-          q3: diaryAnswers.q3 || null
-        })
+       .update({
+  q1: diaryAnswers.q1 || null,
+  q2: diaryAnswers.q2 || null,
+  q3: diaryAnswers.q3 || null,
+  gratitude: diaryAnswers.gratitude || null,
+  free_thoughts: diaryAnswers.free_thoughts || null,
+  rating_done: diaryAnswers.rating_done ? Number(diaryAnswers.rating_done) : null,
+  rating_improve: diaryAnswers.rating_improve ? Number(diaryAnswers.rating_improve) : null,
+  tags: diaryAnswers.tags
+    ? diaryAnswers.tags.split(',').map(t => t.trim()).filter(Boolean)
+    : null
+})
         .eq('id', editingEntryId)
         .select()
         .single()
@@ -614,13 +630,20 @@ const saveDiary = async () => {
     } else {
       const { data, error } = await supabase
         .from('diary_entries')
-        .insert({
-          telegram_id: tgUser.id,
-          q1: diaryAnswers.q1 || null,
-          q2: diaryAnswers.q2 || null,
-          q3: diaryAnswers.q3 || null,
-          entry_date: selectedDiaryDate || new Date().toISOString().slice(0, 10)
-        })
+       .insert({
+  telegram_id: tgUser.id,
+  q1: diaryAnswers.q1 || null,
+  q2: diaryAnswers.q2 || null,
+  q3: diaryAnswers.q3 || null,
+  gratitude: diaryAnswers.gratitude || null,
+  free_thoughts: diaryAnswers.free_thoughts || null,
+  rating_done: diaryAnswers.rating_done ? Number(diaryAnswers.rating_done) : null,
+  rating_improve: diaryAnswers.rating_improve ? Number(diaryAnswers.rating_improve) : null,
+  tags: diaryAnswers.tags
+    ? diaryAnswers.tags.split(',').map(t => t.trim()).filter(Boolean)
+    : null,
+  entry_date: selectedDiaryDate || new Date().toISOString().slice(0, 10)
+})
         .select()
         .single()
 
@@ -631,7 +654,11 @@ const saveDiary = async () => {
       setDiaryEntries(prev => [data, ...prev])
     }
 
-    setDiaryAnswers({ q1: '', q2: '', q3: '' })
+setDiaryAnswers({
+  q1: '', q2: '', q3: '',
+  gratitude: '', free_thoughts: '',
+  rating_done: '', rating_improve: '', tags: ''
+})
     setEditingEntryId(null)
     setShowDiaryForm(false)
   } catch (err) {
@@ -655,7 +682,12 @@ const startEditEntry = (entry) => {
   setDiaryAnswers({
     q1: entry.q1 || '',
     q2: entry.q2 || '',
-    q3: entry.q3 || ''
+    q3: entry.q3 || '',
+    gratitude: entry.gratitude || '',
+    free_thoughts: entry.free_thoughts || '',
+    rating_done: entry.rating_done ?? '',
+    rating_improve: entry.rating_improve ?? '',
+    tags: Array.isArray(entry.tags) ? entry.tags.join(', ') : (entry.tags || '')
   })
   setShowDiaryForm(true)
 }
@@ -1963,7 +1995,7 @@ if (screen === 'diary') {
             Новая запись · {selectedLabel}
           </div>
 
-        <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+     <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
   🎯 Сегодняшний фокус
 </label>
 <textarea
@@ -1993,9 +2025,72 @@ if (screen === 'diary') {
   onChange={e => setDiaryAnswers({ ...diaryAnswers, q1: e.target.value })}
   placeholder="Каждый пункт с новой строки..."
   rows={3}
-  style={{ marginBottom: 16, width: '100%', resize: 'vertical' }}
+  style={{ marginBottom: 14, width: '100%', resize: 'vertical' }}
 />
-      <button className="main-button" onClick={saveDiary}>
+
+<label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  💚 Благодарности
+</label>
+<textarea
+  value={diaryAnswers.gratitude}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, gratitude: e.target.value })}
+  placeholder="За что благодарен сегодня..."
+  rows={2}
+  style={{ marginBottom: 14, width: '100%', resize: 'vertical' }}
+/>
+
+<label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  ✎ Свободные мысли
+</label>
+<textarea
+  value={diaryAnswers.free_thoughts}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, free_thoughts: e.target.value })}
+  placeholder="Любые мысли..."
+  rows={2}
+  style={{ marginBottom: 14, width: '100%', resize: 'vertical' }}
+/>
+
+<div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+  <div style={{ flex: 1 }}>
+    <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+      ★ Оценка «получилось» (1–10)
+    </label>
+    <input
+      type="number"
+      min={1}
+      max={10}
+      value={diaryAnswers.rating_done}
+      onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_done: e.target.value })}
+      placeholder="8"
+    />
+  </div>
+  <div style={{ flex: 1 }}>
+    <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+      ★ Оценка «улучшить» (1–10)
+    </label>
+    <input
+      type="number"
+      min={1}
+      max={10}
+      value={diaryAnswers.rating_improve}
+      onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_improve: e.target.value })}
+      placeholder="5"
+    />
+  </div>
+</div>
+
+<label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  🏷 Теги (через запятую)
+</label>
+<input
+  type="text"
+  value={diaryAnswers.tags}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, tags: e.target.value })}
+  placeholder="продуктивность, код"
+  style={{ marginBottom: 16 }}
+/>
+
+<button className="main-button" onClick={saveDiary}>
   {editingEntryId ? 'Сохранить изменения' : 'Сохранить'}
 </button>
 <button
@@ -2003,7 +2098,11 @@ if (screen === 'diary') {
   onClick={() => {
     setShowDiaryForm(false)
     setEditingEntryId(null)
-    setDiaryAnswers({ q1: '', q2: '', q3: '' })
+    setDiaryAnswers({
+      q1: '', q2: '', q3: '',
+      gratitude: '', free_thoughts: '',
+      rating_done: '', rating_improve: '', tags: ''
+    })
   }}
 >
   Отмена
@@ -2118,6 +2217,68 @@ if (screen === 'diary') {
           ))}
         </div>
       )}
+      {entry.gratitude && (
+  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ fontSize: 13, color: '#f472b6', fontWeight: 600, marginBottom: 6 }}>
+      💚 Благодарности
+    </div>
+    <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.45 }}>{entry.gratitude}</div>
+  </div>
+)}
+
+{entry.free_thoughts && (
+  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ fontSize: 13, color: '#c4b5fd', fontWeight: 600, marginBottom: 6 }}>
+      ✎ Свободные мысли
+    </div>
+    <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.45 }}>{entry.free_thoughts}</div>
+  </div>
+)}
+
+{(entry.rating_done || entry.rating_improve) && (
+  <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+    {entry.rating_done && (
+      <div style={{
+        background: 'rgba(34, 197, 94, 0.15)',
+        color: '#4ade80',
+        fontSize: 12,
+        fontWeight: 600,
+        padding: '4px 10px',
+        borderRadius: 20
+      }}>
+        ★ {entry.rating_done}/10
+      </div>
+    )}
+    {entry.rating_improve && (
+      <div style={{
+        background: 'rgba(251, 146, 60, 0.15)',
+        color: '#fb923c',
+        fontSize: 12,
+        fontWeight: 600,
+        padding: '4px 10px',
+        borderRadius: 20
+      }}>
+        ↑ {entry.rating_improve}/10
+      </div>
+    )}
+  </div>
+)}
+
+{Array.isArray(entry.tags) && entry.tags.length > 0 && (
+  <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+    {entry.tags.map((tag, i) => (
+      <span key={i} style={{
+        background: 'rgba(139, 92, 246, 0.15)',
+        color: '#c4b5fd',
+        fontSize: 11,
+        padding: '4px 10px',
+        borderRadius: 20
+      }}>
+        {tag}
+      </span>
+    ))}
+  </div>
+)}
     </div>
   )
 })}
