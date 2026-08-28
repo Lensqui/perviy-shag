@@ -32,6 +32,7 @@ const [selectedDiaryDate, setSelectedDiaryDate] = useState(
   () => new Date().toISOString().slice(0, 10)
 )
 const [showDiaryForm, setShowDiaryForm] = useState(false)
+const [editingEntryId, setEditingEntryId] = useState(null)
   const [diaryAnswers, setDiaryAnswers] = useState({ q1: '', q2: '', q3: '' })
   const [currentChain, setCurrentChain] = useState([])
   const [onboardingStep, setOnboardingStep] = useState(0)
@@ -593,33 +594,71 @@ const saveDiary = async () => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('diary_entries')
-      .insert({
-        telegram_id: tgUser.id,
-        q1: diaryAnswers.q1 || null,
-        q2: diaryAnswers.q2 || null,
-     entry_date: selectedDiaryDate || new Date().toISOString().slice(0, 10)
-      })
-      .select()
-      .single()
+    if (editingEntryId) {
+      const { data, error } = await supabase
+        .from('diary_entries')
+        .update({
+          q1: diaryAnswers.q1 || null,
+          q2: diaryAnswers.q2 || null,
+          q3: diaryAnswers.q3 || null
+        })
+        .eq('id', editingEntryId)
+        .select()
+        .single()
 
-    if (error) {
-      console.error('Ошибка сохранения дневника:', error)
-      alert('Не удалось сохранить: ' + error.message)
-      return
+      if (error) {
+        alert('Не удалось обновить: ' + error.message)
+        return
+      }
+      setDiaryEntries(prev => prev.map(e => e.id === editingEntryId ? data : e))
+    } else {
+      const { data, error } = await supabase
+        .from('diary_entries')
+        .insert({
+          telegram_id: tgUser.id,
+          q1: diaryAnswers.q1 || null,
+          q2: diaryAnswers.q2 || null,
+          q3: diaryAnswers.q3 || null,
+          entry_date: selectedDiaryDate || new Date().toISOString().slice(0, 10)
+        })
+        .select()
+        .single()
+
+      if (error) {
+        alert('Не удалось сохранить: ' + error.message)
+        return
+      }
+      setDiaryEntries(prev => [data, ...prev])
     }
 
-    setDiaryEntries(prev => [data, ...prev])
     setDiaryAnswers({ q1: '', q2: '', q3: '' })
-
-    alert('Запись сохранена')
+    setEditingEntryId(null)
+    setShowDiaryForm(false)
   } catch (err) {
     console.error(err)
     alert('Произошла ошибка')
   }
 }
+const deleteDiaryEntry = async (id) => {
+  if (!confirm('Удалить запись?')) return
+  const { error } = await supabase.from('diary_entries').delete().eq('id', id)
+  if (error) {
+    alert('Не удалось удалить')
+    return
+  }
+  setDiaryEntries(prev => prev.filter(e => e.id !== id))
+}
 
+const startEditEntry = (entry) => {
+  setEditingEntryId(entry.id)
+  setSelectedDiaryDate(entry.entry_date || entry.created_at?.slice(0, 10))
+  setDiaryAnswers({
+    q1: entry.q1 || '',
+    q2: entry.q2 || '',
+    q3: entry.q3 || ''
+  })
+  setShowDiaryForm(true)
+}
   const startChain = (type) => {
     setCurrentChain(chains[type])
     setCurrentStep(0)
@@ -1820,10 +1859,12 @@ if (screen === 'diary') {
           </p>
         </div>
         <button
-          onClick={() => {
-            setSelectedDiaryDate(new Date().toISOString().slice(0, 10))
-            setShowDiaryForm(true)
-          }}
+      onClick={() => {
+  setEditingEntryId(null)
+  setDiaryAnswers({ q1: '', q2: '', q3: '' })
+  setSelectedDiaryDate(new Date().toISOString().slice(0, 10))
+  setShowDiaryForm(true)
+}}
           style={{
             background: 'rgba(139, 92, 246, 0.2)',
             border: 'none',
@@ -1922,54 +1963,51 @@ if (screen === 'diary') {
             Новая запись · {selectedLabel}
           </div>
 
-          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
-            🎯 Сегодняшний фокус
-          </label>
-          <input
-            type="text"
-            value={diaryAnswers.q3}
-            onChange={e => setDiaryAnswers({ ...diaryAnswers, q3: e.target.value })}
-            placeholder="Главное на сегодня..."
-            style={{ marginBottom: 14 }}
-          />
+        <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  🎯 Сегодняшний фокус
+</label>
+<textarea
+  value={diaryAnswers.q3}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, q3: e.target.value })}
+  placeholder="Главное на сегодня..."
+  rows={2}
+  style={{ marginBottom: 14, width: '100%', resize: 'vertical' }}
+/>
 
-          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
-            ✓ Что получилось
-          </label>
-          <input
-            type="text"
-            value={diaryAnswers.q2}
-            onChange={e => setDiaryAnswers({ ...diaryAnswers, q2: e.target.value })}
-            placeholder="Самый маленький шаг..."
-            style={{ marginBottom: 14 }}
-          />
+<label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  ✓ Что получилось
+</label>
+<textarea
+  value={diaryAnswers.q2}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, q2: e.target.value })}
+  placeholder="Каждый пункт с новой строки..."
+  rows={3}
+  style={{ marginBottom: 14, width: '100%', resize: 'vertical' }}
+/>
 
-          <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
-            💡 Что можно улучшить
-          </label>
-          <input
-            type="text"
-            value={diaryAnswers.q1}
-            onChange={e => setDiaryAnswers({ ...diaryAnswers, q1: e.target.value })}
-            placeholder="Что мешало, что изменить..."
-            style={{ marginBottom: 16 }}
-          />
-
-          <button
-            className="main-button"
-            onClick={async () => {
-              await saveDiary()
-              setShowDiaryForm(false)
-            }}
-          >
-            Сохранить
-          </button>
-          <button
-            className="back-button"
-            onClick={() => setShowDiaryForm(false)}
-          >
-            Отмена
-          </button>
+<label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
+  💡 Что можно улучшить
+</label>
+<textarea
+  value={diaryAnswers.q1}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, q1: e.target.value })}
+  placeholder="Каждый пункт с новой строки..."
+  rows={3}
+  style={{ marginBottom: 16, width: '100%', resize: 'vertical' }}
+/>
+      <button className="main-button" onClick={saveDiary}>
+  {editingEntryId ? 'Сохранить изменения' : 'Сохранить'}
+</button>
+<button
+  className="back-button"
+  onClick={() => {
+    setShowDiaryForm(false)
+    setEditingEntryId(null)
+    setDiaryAnswers({ q1: '', q2: '', q3: '' })
+  }}
+>
+  Отмена
+</button>
         </div>
       )}
 
@@ -2000,72 +2038,89 @@ if (screen === 'diary') {
         </div>
       )}
 
-      {!showDiaryForm && dayEntries.map(entry => (
-        <div
-          key={entry.id}
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: 20,
-            padding: 18,
-            marginBottom: 14
-          }}
-        >
-          {/* Дата */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'rgba(139, 92, 246, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 16
-            }}>
-              📅
+     {!showDiaryForm && dayEntries.map(entry => {
+  const lines = (text) =>
+    (text || '').split('\n').map(s => s.trim()).filter(Boolean)
+
+  return (
+    <div
+      key={entry.id}
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        borderRadius: 20,
+        padding: 18,
+        marginBottom: 14
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(139, 92, 246, 0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>📅</div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15, textTransform: 'capitalize' }}>
+              {selectedLabel}
             </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 15, textTransform: 'capitalize' }}>
-                {selectedLabel}
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.45 }}>
-                {entry.created_at
-                  ? new Date(entry.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-                  : 'запись'}
-              </div>
+            <div style={{ fontSize: 12, opacity: 0.45 }}>
+              {entry.created_at
+                ? `Запись от ${new Date(entry.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+                : 'запись'}
             </div>
           </div>
-
-          {entry.q3 && (
-       <div style={{ marginBottom: 14 }}>
-  <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>
-    🎯 Сегодняшний фокус
-  </div>
-  <div style={{ fontSize: 14, opacity: entry.q3 ? 0.85 : 0.35, lineHeight: 1.4 }}>
-    {entry.q3 || 'Не указан'}
-  </div>
-</div>
-          )}
-
-          {entry.q2 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, color: '#4ade80', fontWeight: 600, marginBottom: 4 }}>
-                ✓ Что получилось
-              </div>
-              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q2}</div>
-            </div>
-          )}
-
-          {entry.q1 && (
-            <div style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 13, color: '#fb923c', fontWeight: 600, marginBottom: 4 }}>
-                💡 Что можно улучшить
-              </div>
-              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q1}</div>
-            </div>
-          )}
         </div>
-      ))}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => startEditEntry(entry)}
+            style={{ background: 'transparent', border: 'none', color: '#a78bfa', fontSize: 16, cursor: 'pointer' }}
+          >✎</button>
+          <button
+            onClick={() => deleteDiaryEntry(entry.id)}
+            style={{ background: 'transparent', border: 'none', color: 'rgba(255,80,80,0.8)', fontSize: 16, cursor: 'pointer' }}
+          >🗑</button>
+        </div>
+      </div>
+
+      {entry.q3 && (
+        <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 6 }}>
+            🎯 Сегодняшний фокус
+          </div>
+          <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.45 }}>{entry.q3}</div>
+        </div>
+      )}
+
+      {entry.q2 && (
+        <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 13, color: '#4ade80', fontWeight: 600, marginBottom: 8 }}>
+            ✓ Что получилось
+          </div>
+          {lines(entry.q2).map((line, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 4, fontSize: 14, opacity: 0.85 }}>
+              <span style={{ color: '#4ade80' }}>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {entry.q1 && (
+        <div>
+          <div style={{ fontSize: 13, color: '#fb923c', fontWeight: 600, marginBottom: 8 }}>
+            💡 Что можно улучшить
+          </div>
+          {lines(entry.q1).map((line, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 4, fontSize: 14, opacity: 0.85 }}>
+              <span style={{ color: '#fb923c' }}>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})}
 
       <Nav />
     </div>
