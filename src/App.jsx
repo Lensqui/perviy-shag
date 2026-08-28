@@ -615,78 +615,85 @@ const loadStats = async (period = 'week') => {
 
   const list = logs || []
 
-  const totalFocus = list.reduce((s, l) => s + (l.focus_seconds || 0), 0)
-  const done = list.filter(l => l.status === 'done').length
-  const skipped = list.filter(l => l.status === 'skipped').length
-  const partial = list.filter(l => l.status === 'progress' && (l.focus_seconds || 0) > 0).length
-  const totalTasks = done + skipped + partial
-  const productivity = totalTasks > 0 ? Math.round((done / totalTasks) * 100) : 0
+const isDone = (l) => {
+  if (l.status === 'done') return true
+  const dur = (l.habits?.duration_minutes || 15) * 60
+  return (l.focus_seconds || 0) >= dur && dur > 0
+}
 
-  // серия подряд (done дни)
-  const doneDates = [...new Set(
-    list.filter(l => l.status === 'done').map(l => l.completed_at)
-  )].sort().reverse()
+const totalFocus = list.reduce((s, l) => s + (l.focus_seconds || 0), 0)
+const done = list.filter(isDone).length
+const skipped = list.filter(l => l.status === 'skipped').length
+const partial = list.filter(l => !isDone(l) && l.status !== 'skipped' && (l.focus_seconds || 0) > 0).length
+const totalTasks = done + skipped + partial
+const productivity = totalTasks > 0 ? Math.round((done / totalTasks) * 100) : 0
 
-  let streakCount = 0
-  let cursor = new Date()
-  cursor.setHours(0, 0, 0, 0)
+// серия подряд
+const doneDates = [...new Set(
+  list.filter(isDone).map(l => l.completed_at)
+)].sort().reverse()
 
-  for (;;) {
-    const ds = cursor.toISOString().slice(0, 10)
-    if (doneDates.includes(ds)) {
-      streakCount++
-      cursor.setDate(cursor.getDate() - 1)
-    } else if (ds === to && streakCount === 0) {
-      cursor.setDate(cursor.getDate() - 1)
-    } else {
-      break
+let streakCount = 0
+let cursor = new Date()
+cursor.setHours(12, 0, 0, 0)
+
+for (let i = 0; i < 60; i++) {
+  const ds = cursor.toISOString().slice(0, 10)
+  if (doneDates.includes(ds)) {
+    streakCount++
+    cursor.setDate(cursor.getDate() - 1)
+  } else if (i === 0) {
+    // сегодня ещё нет — смотрим вчера
+    cursor.setDate(cursor.getDate() - 1)
+  } else {
+    break
+  }
+}
+
+// фокус по дням недели
+const byDay = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 0: 0 }
+list.forEach(l => {
+  const d = new Date(l.completed_at + 'T12:00:00')
+  const wd = d.getDay()
+  byDay[wd] = (byDay[wd] || 0) + (l.focus_seconds || 0)
+})
+
+// по привычкам
+const byHabit = {}
+list.forEach(l => {
+  const id = l.habit_id
+  if (!byHabit[id]) {
+    byHabit[id] = {
+      name: l.habits?.name || 'Привычка',
+      focus: 0,
+      done: 0,
+      total: 0,
+      duration: (l.habits?.duration_minutes || 15) * 60
     }
   }
+  byHabit[id].focus += l.focus_seconds || 0
+  byHabit[id].total += 1
+  if (isDone(l)) byHabit[id].done += 1
+})
 
-  // фокус по дням недели (для графика)
-  const byDay = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 0: 0 }
-  list.forEach(l => {
-    const d = new Date(l.completed_at + 'T12:00:00')
-    const wd = d.getDay()
-    byDay[wd] = (byDay[wd] || 0) + (l.focus_seconds || 0)
-  })
+const habitsStats = Object.values(byHabit).map(h => ({
+  ...h,
+  percent: h.total > 0 ? Math.round((h.done / h.total) * 100) : 0
+})).sort((a, b) => b.percent - a.percent)
 
-  // по привычкам
-  const byHabit = {}
-  list.forEach(l => {
-    const id = l.habit_id
-    if (!byHabit[id]) {
-      byHabit[id] = {
-        name: l.habits?.name || 'Привычка',
-        focus: 0,
-        done: 0,
-        total: 0,
-        duration: (l.habits?.duration_minutes || 15) * 60
-      }
-    }
-    byHabit[id].focus += l.focus_seconds || 0
-    byHabit[id].total += 1
-    if (l.status === 'done') byHabit[id].done += 1
-  })
-
-  const habitsStats = Object.values(byHabit).map(h => ({
-    ...h,
-    percent: h.total > 0 ? Math.round((h.done / h.total) * 100) : 0
-  })).sort((a, b) => b.percent - a.percent)
-
-  setStatsData({
-    totalFocus,
-    done,
-    skipped,
-    partial,
-    totalTasks,
-    productivity,
-    streakCount,
-    byDay,
-    habitsStats,
-    from,
-    to
-  })
+setStatsData({
+  totalFocus,
+  done,
+  skipped,
+  partial,
+  totalTasks,
+  productivity,
+  streakCount,
+  byDay,
+  habitsStats,
+  from,
+  to
+})
 }
 const formatFocus = (seconds) => {
   const totalMin = Math.round((seconds || 0) / 60)
