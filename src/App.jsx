@@ -276,8 +276,12 @@ useEffect(() => {
     }, 1000)
 } else if (timerRunning && timerSeconds === 0 && timerHabit) {
   setTimerRunning(false)
-  const total = (timerHabit.duration_minutes || 15) * 60
-  saveFocusProgress(timerHabit, total)
+  if (timerHabit._quick) {
+    saveFocusProgress(timerHabit, 2 * 60) // → 100% через isQuickComplete
+  } else {
+    const total = (timerHabit.duration_minutes || 15) * 60
+    saveFocusProgress(timerHabit, total)
+  }
   setTimerHabit(null)
   setScreen('main')
 }
@@ -448,8 +452,16 @@ const saveFocusProgress = async (habit, secondsSpent) => {
   if (!tgUser?.id || !habit) return
 
   const today = new Date().toISOString().slice(0, 10)
-  const total = (habit.duration_minutes || 15) * 60
-  const newFocus = Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
+const realDuration = habits.find(h => h.id === habit.id)?.duration_minutes
+  || habit.duration_minutes
+  || 15
+const total = realDuration * 60
+
+// quick-сессия: если дожали до конца 2 мин — сразу 100%
+const isQuickComplete = habit._quick && secondsSpent >= 2 * 60 - 2
+const newFocus = isQuickComplete
+  ? total
+  : Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
   const progress = Math.min(100, Math.round((newFocus / total) * 100))
   const status = progress >= 100 ? 'done' : 'progress'
 
@@ -1400,7 +1412,6 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
         <div style={{ marginTop: 28, textAlign: 'left' }}>
           <h3 style={{ marginBottom: 12 }}>Мои привычки</h3>
 
-          {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
 {habits.length === 0 && (
   <div className="empty-state">
     <div style={{ fontSize: 40, marginBottom: 10 }}>🌱</div>
@@ -1491,7 +1502,7 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
 
     {/* Контент */}
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <div style={{ 
           fontWeight: 600, 
           fontSize: 15,
@@ -1509,51 +1520,47 @@ opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
             color: '#f87171',
             padding: '2px 8px',
             borderRadius: 20,
-            fontWeight: 600
+            fontWeight: 600,
+            flexShrink: 0
           }}>
             Важно
           </div>
         )}
       </div>
-      
-      <div style={{ 
-        fontSize: 13, 
-        opacity: 0.5, 
+
+      <div style={{
+        fontSize: 14,
+        lineHeight: 1.4,
+        color: 'rgba(255,255,255,0.85)',
         marginBottom: 8,
-        lineHeight: 1.35,
+        fontWeight: 500,
         wordBreak: 'break-word'
       }}>
         {habit.first_step}
-        <div style={{
-  fontSize: 14,
-  lineHeight: 1.4,
-  color: 'rgba(255,255,255,0.85)',
-  marginBottom: 8,
-  fontWeight: 500
-}}>
-  {habit.first_step}
-</div>
+      </div>
 
-{!habit.doneToday && !habit.skipped && (
-  <button
-    onClick={(e) => {
-      e.stopPropagation()
-      openHabitTimer({ ...habit, duration_minutes: 2, _quick: true })
-    }}
-    style={{
-      fontSize: 12,
-      padding: '6px 12px',
-      borderRadius: 20,
-      border: 'none',
-      background: 'rgba(139, 92, 246, 0.2)',
-      color: '#c4b5fd',
-      cursor: 'pointer',
-      marginBottom: 6
-    }}
-  >
-    ⚡ 2 минуты
-  </button>
-)}
+      {!habit.doneToday && !habit.skipped && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            openHabitTimer({ ...habit, _quick: true })
+          }}
+          style={{
+            fontSize: 12,
+            padding: '6px 12px',
+            borderRadius: 20,
+            border: 'none',
+            background: 'rgba(139, 92, 246, 0.2)',
+            color: '#c4b5fd',
+            cursor: 'pointer',
+            marginBottom: 8
+          }}
+        >
+          ⚡ 2 минуты
+        </button>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -2529,7 +2536,9 @@ if (screen === 'timer' && timerHabit) {
   const mins = Math.floor(timerSeconds / 60)
   const secs = timerSeconds % 60
   const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-  const total = (timerHabit.duration_minutes || 15) * 60
+    const total = timerHabit._quick
+    ? 2 * 60
+    : (timerHabit.duration_minutes || 15) * 60
   const progress = total > 0 ? ((total - timerSeconds) / total) * 100 : 0
 
   return (
@@ -2609,13 +2618,20 @@ if (screen === 'timer' && timerHabit) {
 
   <button
 onClick={async () => {
-  const total = (timerHabit.duration_minutes || 15) * 60
-  const alreadySpent = timerHabit.focusSeconds || 0
-  const remainingAtStart = total - alreadySpent
-  const spentSession = Math.max(0, remainingAtStart - timerSeconds)
-
-  if (spentSession > 0) {
-    await saveFocusProgress(timerHabit, spentSession)
+  if (timerHabit._quick) {
+    // сколько реально открутили из 2 минут
+    const spentSession = Math.max(0, 2 * 60 - timerSeconds)
+    if (spentSession > 0) {
+      await saveFocusProgress(timerHabit, spentSession)
+    }
+  } else {
+    const total = (timerHabit.duration_minutes || 15) * 60
+    const alreadySpent = timerHabit.focusSeconds || 0
+    const remainingAtStart = Math.max(0, total - alreadySpent)
+    const spentSession = Math.max(0, remainingAtStart - timerSeconds)
+    if (spentSession > 0) {
+      await saveFocusProgress(timerHabit, spentSession)
+    }
   }
 
   setTimerRunning(false)
@@ -2638,9 +2654,12 @@ onClick={async () => {
 
 <button
   onClick={async () => {
-    // Завершить полностью
-    const total = (timerHabit.duration_minutes || 15) * 60
-    await saveFocusProgress(timerHabit, total)
+    if (timerHabit._quick) {
+      await saveFocusProgress(timerHabit, 2 * 60)
+    } else {
+      const total = (timerHabit.duration_minutes || 15) * 60
+      await saveFocusProgress(timerHabit, total)
+    }
     setTimerRunning(false)
     setTimerHabit(null)
     setScreen('main')
