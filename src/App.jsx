@@ -361,7 +361,21 @@ const addHabit = async (name, firstStep, duration = 15, time = null, priority = 
     setNewDuration(15)
     setNewTime('')
     setNewPriority('normal')
-    
+    if (screen === 'loading' || !isLoaded) {
+  return (
+    <div className="app" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '80vh'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>⚡</div>
+        <div style={{ opacity: 0.5, fontSize: 14 }}>Загрузка...</div>
+      </div>
+    </div>
+  )
+}
     if (screen === 'onboarding') {
       localStorage.setItem('onboardingDone', 'true')
     }
@@ -1383,7 +1397,18 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
           <h3 style={{ marginBottom: 12 }}>Мои привычки</h3>
 
           {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
-
+{habits.length === 0 && (
+  <div className="empty-state">
+    <div style={{ fontSize: 40, marginBottom: 10 }}>🌱</div>
+    <div style={{ fontSize: 15, marginBottom: 6 }}>Пока нет привычек</div>
+    <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 16 }}>
+      Добавь первую — маленький шаг уже победа
+    </div>
+    <button className="main-button" onClick={() => setScreen('add')}>
+      + Добавить привычку
+    </button>
+  </div>
+)}
 {[...habits]
   .sort((a, b) => {
     if (a.priority === 'high' && b.priority !== 'high') return -1
@@ -2008,7 +2033,7 @@ if (screen === 'diary') {
           marginBottom: 16
         }}>
           <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>
-            Новая запись · {selectedLabel}
+         {editingEntryId ? 'Редактирование' : 'Новая запись'} · {selectedLabel}
           </div>
 
      <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
