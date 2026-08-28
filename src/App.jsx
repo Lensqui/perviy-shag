@@ -612,8 +612,16 @@ const saveDiary = async () => {
   q3: diaryAnswers.q3 || null,
   gratitude: diaryAnswers.gratitude || null,
   free_thoughts: diaryAnswers.free_thoughts || null,
-  rating_done: diaryAnswers.rating_done ? Number(diaryAnswers.rating_done) : null,
-  rating_improve: diaryAnswers.rating_improve ? Number(diaryAnswers.rating_improve) : null,
+rating_done: (() => {
+  const n = Number(diaryAnswers.rating_done)
+  if (!n || isNaN(n)) return null
+  return Math.min(10, Math.max(1, Math.round(n)))
+})(),
+rating_improve: (() => {
+  const n = Number(diaryAnswers.rating_improve)
+  if (!n || isNaN(n)) return null
+  return Math.min(10, Math.max(1, Math.round(n)))
+})(),
   tags: diaryAnswers.tags
     ? diaryAnswers.tags.split(',').map(t => t.trim()).filter(Boolean)
     : null
@@ -637,8 +645,16 @@ const saveDiary = async () => {
   q3: diaryAnswers.q3 || null,
   gratitude: diaryAnswers.gratitude || null,
   free_thoughts: diaryAnswers.free_thoughts || null,
-  rating_done: diaryAnswers.rating_done ? Number(diaryAnswers.rating_done) : null,
-  rating_improve: diaryAnswers.rating_improve ? Number(diaryAnswers.rating_improve) : null,
+rating_done: (() => {
+  const n = Number(diaryAnswers.rating_done)
+  if (!n || isNaN(n)) return null
+  return Math.min(10, Math.max(1, Math.round(n)))
+})(),
+rating_improve: (() => {
+  const n = Number(diaryAnswers.rating_improve)
+  if (!n || isNaN(n)) return null
+  return Math.min(10, Math.max(1, Math.round(n)))
+})(),
   tags: diaryAnswers.tags
     ? diaryAnswers.tags.split(',').map(t => t.trim()).filter(Boolean)
     : null,
@@ -2055,27 +2071,37 @@ if (screen === 'diary') {
     <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
       ★ Оценка «получилось» (1–10)
     </label>
-    <input
-      type="number"
-      min={1}
-      max={10}
-      value={diaryAnswers.rating_done}
-      onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_done: e.target.value })}
-      placeholder="8"
-    />
+ <input
+  type="number"
+  min={1}
+  max={10}
+  value={diaryAnswers.rating_done}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_done: e.target.value })}
+  onBlur={e => {
+    if (e.target.value === '') return
+    const n = Math.min(10, Math.max(1, Number(e.target.value) || 1))
+    setDiaryAnswers({ ...diaryAnswers, rating_done: String(n) })
+  }}
+  placeholder="8"
+/>
   </div>
   <div style={{ flex: 1 }}>
     <label style={{ fontSize: 13, opacity: 0.6, display: 'block', marginBottom: 6 }}>
       ★ Оценка «улучшить» (1–10)
     </label>
-    <input
-      type="number"
-      min={1}
-      max={10}
-      value={diaryAnswers.rating_improve}
-      onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_improve: e.target.value })}
-      placeholder="5"
-    />
+   <input
+  type="number"
+  min={1}
+  max={10}
+  value={diaryAnswers.rating_improve}
+  onChange={e => setDiaryAnswers({ ...diaryAnswers, rating_improve: e.target.value })}
+  onBlur={e => {
+    if (e.target.value === '') return
+    const n = Math.min(10, Math.max(1, Number(e.target.value) || 1))
+    setDiaryAnswers({ ...diaryAnswers, rating_improve: String(n) })
+  }}
+  placeholder="5"
+/>
   </div>
 </div>
 
@@ -2246,7 +2272,7 @@ if (screen === 'diary') {
         padding: '4px 10px',
         borderRadius: 20
       }}>
-        ★ {entry.rating_done}/10
+      ★ {Math.min(10, Math.max(1, Number(entry.rating_done) || 1))}/10
       </div>
     )}
     {entry.rating_improve && (
@@ -2258,7 +2284,7 @@ if (screen === 'diary') {
         padding: '4px 10px',
         borderRadius: 20
       }}>
-        ↑ {entry.rating_improve}/10
+   ↑ {Math.min(10, Math.max(1, Number(entry.rating_improve) || 1))}/10
       </div>
     )}
   </div>
