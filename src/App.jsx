@@ -187,16 +187,45 @@ if (diaryError) {
   setHabits(habitsWithStatus)
 }
 
-        // Загружаем серию
-        const { data: userData } = await supabase
-          .from('users')
-          .select('streak, last_active_date')
-          .eq('telegram_id', tgUser.id)
-          .single()
+// Стрик: только подряд идущие дни с выполненными привычками
+const { data: doneLogs } = await supabase
+  .from('habit_logs')
+  .select('completed_at, focus_seconds, status, habits(duration_minutes)')
+  .eq('telegram_id', tgUser.id)
+  .order('completed_at', { ascending: false })
+  .limit(90)
 
-        if (userData) {
-          setStreak(userData.streak || 0)
-        }
+const doneSet = new Set()
+;(doneLogs || []).forEach(l => {
+  const dur = (l.habits?.duration_minutes || 15) * 60
+  const ok = l.status === 'done' || ((l.focus_seconds || 0) >= dur && dur > 0)
+  if (ok) doneSet.add(l.completed_at)
+})
+
+let calcStreak = 0
+const cursor = new Date()
+cursor.setHours(12, 0, 0, 0)
+
+for (let i = 0; i < 60; i++) {
+  const ds = cursor.toISOString().slice(0, 10)
+  if (doneSet.has(ds)) {
+    calcStreak++
+    cursor.setDate(cursor.getDate() - 1)
+  } else if (i === 0) {
+    // сегодня ещё нет выполнения — смотрим вчера, стрик не рвём до проверки вчера
+    cursor.setDate(cursor.getDate() - 1)
+  } else {
+    break
+  }
+}
+
+setStreak(calcStreak)
+
+// синхронизируем в users
+await supabase
+  .from('users')
+  .update({ streak: calcStreak })
+  .eq('telegram_id', tgUser.id)
       }
     } catch (e) {
       console.log('Ошибка инициализации:', e)
@@ -1152,19 +1181,38 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 <div style={{
   display: 'flex',
   alignItems: 'center',
-  gap: 10,
-  marginBottom: 16,
-  padding: '12px 16px',
-  background: 'rgba(251, 146, 60, 0.1)',
-  borderRadius: 16,
-  border: '1px solid rgba(251, 146, 60, 0.2)'
+  gap: 12,
+  marginBottom: 14,
+  padding: '12px 14px',
+  background: 'rgba(251, 146, 60, 0.12)',
+  borderRadius: 14
 }}>
-  <div style={{ fontSize: 28 }}>🔥</div>
-  <div>
-    <div style={{ fontWeight: 700, fontSize: 18, color: '#fb923c' }}>
+  <div style={{
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    background: 'rgba(251, 146, 60, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 22,
+    flexShrink: 0
+  }}>
+    🔥
+  </div>
+  <div style={{ minWidth: 0 }}>
+    <div style={{
+      fontWeight: 700,
+      fontSize: 17,
+      color: '#fb923c',
+      lineHeight: 1.2,
+      fontVariantNumeric: 'tabular-nums'
+    }}>
       {streak} {streak === 1 ? 'день' : streak >= 2 && streak <= 4 ? 'дня' : 'дней'}
     </div>
-    <div style={{ fontSize: 12, opacity: 0.5 }}>серия подряд</div>
+    <div style={{ fontSize: 12, opacity: 0.45, marginTop: 2 }}>
+      серия подряд
+    </div>
   </div>
 </div>
   {/* Красивая неделя */}
