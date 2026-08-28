@@ -445,6 +445,26 @@ const saveFocusProgress = async (habit, secondsSpent) => {
 if (newFocus > 0) {
     setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
   }
+
+  if (progress >= 100) {
+    const lastActive = localStorage.getItem('lastActiveDate')
+    const todayStr = new Date().toDateString()
+
+    if (lastActive !== todayStr) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const newStreak = lastActive === yesterday.toDateString() ? streak + 1 : 1
+      setStreak(newStreak)
+      localStorage.setItem('lastActiveDate', todayStr)
+
+      if (tgUser?.id) {
+        supabase.from('users').update({
+          streak: newStreak,
+          last_active_date: today
+        }).eq('telegram_id', tgUser.id)
+      }
+    }
+  }
 }
 const skipHabit = async (habit) => {
   const telegram = window.Telegram?.WebApp
@@ -1127,25 +1147,26 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     <div>
       {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
     </div>
-    
-    {streak > 0 && (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 6,
-        background: 'rgba(251, 146, 60, 0.15)',
-        padding: '6px 12px',
-        borderRadius: 20,
-        fontSize: 15,
-        fontWeight: 600,
-        color: '#fb923c'
-      }}>
-        <span style={{ fontSize: 18 }}>🔥</span>
-        {streak}
-      </div>
-    )}
   </div>
-
+{/* Стрик */}
+<div style={{
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  marginBottom: 16,
+  padding: '12px 16px',
+  background: 'rgba(251, 146, 60, 0.1)',
+  borderRadius: 16,
+  border: '1px solid rgba(251, 146, 60, 0.2)'
+}}>
+  <div style={{ fontSize: 28 }}>🔥</div>
+  <div>
+    <div style={{ fontWeight: 700, fontSize: 18, color: '#fb923c' }}>
+      {streak} {streak === 1 ? 'день' : streak >= 2 && streak <= 4 ? 'дня' : 'дней'}
+    </div>
+    <div style={{ fontSize: 12, opacity: 0.5 }}>серия подряд</div>
+  </div>
+</div>
   {/* Красивая неделя */}
   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
 {Array.from({ length: 7 }).map((_, i) => {
@@ -1223,7 +1244,13 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 
           {habits.length === 0 && <p style={{ opacity: 0.6, fontSize: 14 }}>Пока нет привычек</p>}
 
-   {habits.map(habit => {
+{[...habits]
+  .sort((a, b) => {
+    if (a.priority === 'high' && b.priority !== 'high') return -1
+    if (b.priority === 'high' && a.priority !== 'high') return 1
+    return 0
+  })
+  .map(habit => {
   const name = (habit.name || '').toLowerCase()
   let icon = '⚡'
   let color = '#a78bfa'
