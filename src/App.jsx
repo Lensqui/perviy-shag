@@ -1840,47 +1840,75 @@ if (screen === 'diary') {
         </button>
       </div>
 
-      {/* Неделя */}
+    {/* Неделя */}
+<div style={{
+  display: 'flex',
+  gap: 8,
+  marginTop: 18,
+  marginBottom: 22,
+  overflowX: 'auto',
+  paddingBottom: 4
+}}>
+  {weekDays.map(d => (
+    <button
+      key={d.dateStr}
+      onClick={() => {
+        setSelectedDiaryDate(d.dateStr)
+        setShowDiaryForm(false)
+      }}
+      style={{
+        flex: '1 0 48px',
+        minWidth: 48,
+        padding: '12px 6px',
+        borderRadius: 16,
+        border: d.isSelected ? '1.5px solid #8b5cf6' : '1px solid rgba(255,255,255,0.06)',
+        background: d.isSelected
+          ? 'rgba(139, 92, 246, 0.18)'
+          : 'rgba(255,255,255,0.04)',
+        color: '#fff',
+        cursor: 'pointer',
+        textAlign: 'center',
+        transition: '0.15s'
+      }}
+    >
       <div style={{
-        display: 'flex',
-        gap: 6,
-        marginTop: 18,
-        marginBottom: 20,
-        overflowX: 'auto'
+        fontSize: 11,
+        opacity: d.isSelected ? 0.9 : 0.45,
+        marginBottom: 4,
+        fontWeight: 500
       }}>
-        {weekDays.map(d => (
-          <button
-            key={d.dateStr}
-            onClick={() => {
-              setSelectedDiaryDate(d.dateStr)
-              setShowDiaryForm(false)
-            }}
-            style={{
-              flex: '1 0 44px',
-              padding: '10px 4px',
-              borderRadius: 14,
-              border: d.isSelected ? '1.5px solid #8b5cf6' : '1px solid transparent',
-              background: d.isSelected
-                ? 'rgba(139, 92, 246, 0.15)'
-                : 'rgba(255,255,255,0.04)',
-              color: '#fff',
-              cursor: 'pointer',
-              textAlign: 'center'
-            }}
-          >
-            <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 2 }}>{d.label}</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{d.dayNum}</div>
-            <div style={{ fontSize: 10, opacity: 0.4, marginBottom: 4 }}>{d.month}</div>
-            <div style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              margin: '0 auto',
-              background: d.hasEntry ? '#22c55e' : 'rgba(255,255,255,0.12)'
-            }} />
-          </button>
-        ))}
+        {d.label}
       </div>
+      <div style={{
+        fontSize: 18,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        marginBottom: 2
+      }}>
+        {d.dayNum}
+      </div>
+      <div style={{
+        fontSize: 10,
+        opacity: 0.35,
+        marginBottom: 6,
+        textTransform: 'lowercase'
+      }}>
+        {d.month}
+      </div>
+      <div style={{
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        margin: '0 auto',
+        background: d.hasEntry
+          ? '#22c55e'
+          : d.isSelected
+            ? 'rgba(167, 139, 250, 0.5)'
+            : 'rgba(255,255,255,0.12)'
+      }} />
+    </button>
+  ))}
+</div>
 
       {/* Форма новой записи */}
       {showDiaryForm && (
@@ -2009,12 +2037,14 @@ if (screen === 'diary') {
           </div>
 
           {entry.q3 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>
-                🎯 Сегодняшний фокус
-              </div>
-              <div style={{ fontSize: 14, opacity: 0.85, lineHeight: 1.4 }}>{entry.q3}</div>
-            </div>
+       <div style={{ marginBottom: 14 }}>
+  <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>
+    🎯 Сегодняшний фокус
+  </div>
+  <div style={{ fontSize: 14, opacity: entry.q3 ? 0.85 : 0.35, lineHeight: 1.4 }}>
+    {entry.q3 || 'Не указан'}
+  </div>
+</div>
           )}
 
           {entry.q2 && (
