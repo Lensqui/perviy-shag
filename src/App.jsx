@@ -738,7 +738,8 @@ const startEditEntry = (entry) => {
   }
 const openDay = async (dateStr) => {
   setSelectedDate(dateStr)
-  
+  setSelectedDayHabits([]) // сразу очищаем — не мелькает чужой день
+
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
   if (!tgUser?.id) return
@@ -749,7 +750,13 @@ const openDay = async (dateStr) => {
     .eq('telegram_id', tgUser.id)
     .eq('completed_at', dateStr)
 
-  setSelectedDayHabits(data || [])
+  // если уже выбран другой день — ответ игнорируем
+  setSelectedDate(current => {
+    if (current === dateStr) {
+      setSelectedDayHabits(data || [])
+    }
+    return current
+  })
 }
 const loadStats = async (period = 'week') => {
   const telegram = window.Telegram?.WebApp
