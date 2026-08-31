@@ -175,7 +175,7 @@ const habitsWithStatus = (habitsData || []).map(h => {
     : (total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0)
   return {
     ...h,
-    focusSeconds: isDone ? total : focus,
+    focusSeconds: focus,
     progress,
     doneToday: isDone,
     skipped: isSkipped
@@ -1046,12 +1046,13 @@ const focusMin = Math.round(totalFocus / 60)
 
 const completed = selectedDayHabits.filter(item => {
   if (item.status === 'skipped') return false
+  if (item.status === 'done') return true
   const dur = (item.habits?.duration_minutes || 15) * 60
   return (item.focus_seconds || 0) >= dur
 }).length
 
 const partial = selectedDayHabits.filter(item => {
-  if (item.status === 'skipped') return false
+  if (item.status === 'skipped' || item.status === 'done') return false
   const dur = (item.habits?.duration_minutes || 15) * 60
   const f = item.focus_seconds || 0
   return f > 0 && f < dur
@@ -1119,7 +1120,10 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 
     const total = (item.habits?.duration_minutes || 15) * 60
     const focus = item.focus_seconds || 0
-    const progress = total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0
+    const isDone = item.status === 'done' || (total > 0 && focus >= total)
+    const progress = isDone
+      ? 100
+      : (total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0)
     const focusMin = Math.round(focus / 60)
 
     return (
