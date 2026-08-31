@@ -14,6 +14,7 @@ const [showFullCalendar, setShowFullCalendar] = useState(false)
 const [currentMonth, setCurrentMonth] = useState(new Date())
 const [selectedDate, setSelectedDate] = useState(null)
 const [selectedDayHabits, setSelectedDayHabits] = useState([])
+const [ritualType, setRitualType] = useState(null) // 'morning' | 'evening' | null
 const [currentStep, setCurrentStep] = useState(0)
 const [newDuration, setNewDuration] = useState(15)
 const [newTime, setNewTime] = useState('')
@@ -561,7 +562,10 @@ const skipHabit = async (habit) => {
       skipped: true
     }
   }))
-  setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
+setStreakDays(prev => prev.includes(today) ? prev : [...prev, today])
+
+  // после пропуска — мягкий вход в цепочку
+  setScreen('lazy')
 }
 const unskipHabit = async (habit) => {
   const telegram = window.Telegram?.WebApp
@@ -863,6 +867,22 @@ const formatFocus = (seconds) => {
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
   return m > 0 ? `${h}ч ${m}м` : `${h}ч`
+}
+const todayKey = () => new Date().toISOString().slice(0, 10)
+
+const isRitualDone = (type) => {
+  return localStorage.getItem(`ritual_${type}_${todayKey()}`) === '1'
+}
+
+const markRitualDone = (type) => {
+  localStorage.setItem(`ritual_${type}_${todayKey()}`, '1')
+}
+
+const getSuggestedRitual = () => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12 && !isRitualDone('morning')) return 'morning'
+  if (hour >= 18 && hour < 24 && !isRitualDone('evening')) return 'evening'
+  return null
 }
   // ===== Нижняя навигация =====
   const Nav = () => (
@@ -1413,7 +1433,44 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     Открыть полный календарь →
   </button>
 </div>
+{(() => {
+  const r = getSuggestedRitual()
+  if (!r) return null
+  return (
+    <button
+      onClick={() => {
+        setRitualType(r)
+        setScreen('ritual')
+      }}
+      style={{
+        width: '100%',
+        marginBottom: 14,
+        padding: '14px 16px',
+        borderRadius: 16,
+        border: 'none',
+        background: r === 'morning'
+          ? 'linear-gradient(135deg, rgba(251,146,60,0.2), rgba(251,146,60,0.08))'
+          : 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(139,92,246,0.08))',
+        color: '#fff',
+        textAlign: 'left',
+        cursor: 'pointer'
+      }}
+    >
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+        {r === 'morning' ? '🌅 Утренний ритуал' : '🌙 Вечерний ритуал'}
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.7 }}>
+        {r === 'morning'
+          ? '1 минута: фокус дня и первый шаг'
+          : '1 минута: что вышло и что отпустить'}
+      </div>
+    </button>
+  )
+})()}
 
+        <button className="main-button" onClick={() => setScreen('lazy')}>
+          Мне сейчас лень
+        </button>
         <button className="main-button" onClick={() => setScreen('lazy')}>
           Мне сейчас лень
         </button>
@@ -2501,12 +2558,133 @@ if (screen === 'add') {
     </div>
   )
 }
+if (screen === 'ritual' && ritualType) {
+  const isMorning = ritualType === 'morning'
+  return (
+    <div className="app">
+      <h2>{isMorning ? '🌅 Утренний ритуал' : '🌙 Вечерний ритуал'}</h2>
+      <p style={{ opacity: 0.55, fontSize: 14, marginBottom: 20, lineHeight: 1.45 }}>
+        {isMorning
+          ? 'Не план на весь день — только якорь, чтобы начать.'
+          : 'Без самокритики. Коротко зафиксируй день.'}
+      </p>
 
+      {isMorning ? (
+        <>
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 12
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>1. Главный фокус дня</div>
+            <div style={{ fontSize: 13, opacity: 0.6, marginBottom: 10 }}>
+              Одно предложение — что сегодня важнее всего
+            </div>
+            <input
+              type="text"
+              placeholder="Например: дописать черновик"
+              value={diaryAnswers.q3}
+              onChange={e => setDiaryAnswers({ ...diaryAnswers, q3: e.target.value })}
+            />
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>2. Первый шаг (2 минуты)</div>
+            <div style={{ fontSize: 13, opacity: 0.6 }}>
+              Открой любую привычку и нажми «⚡ 2 минуты» — этого достаточно.
+            </div>
+          </div>
+
+          <button
+            className="main-button"
+            onClick={() => {
+              markRitualDone('morning')
+              setRitualType(null)
+              setScreen('main')
+            }}
+          >
+            Готово, иду делать
+          </button>
+        </>
+      ) : (
+        <>
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 12
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Что получилось?</div>
+            <textarea
+              rows={2}
+              placeholder="Хотя бы один пункт"
+              value={diaryAnswers.q2}
+              onChange={e => setDiaryAnswers({ ...diaryAnswers, q2: e.target.value })}
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Что отпустить?</div>
+            <textarea
+              rows={2}
+              placeholder="Без вины"
+              value={diaryAnswers.q1}
+              onChange={e => setDiaryAnswers({ ...diaryAnswers, q1: e.target.value })}
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+          </div>
+
+          <button
+            className="main-button"
+            onClick={() => {
+              markRitualDone('evening')
+              setRitualType(null)
+              // если что-то написал — сразу в форму дневника
+              if (diaryAnswers.q1 || diaryAnswers.q2) {
+                setShowDiaryForm(true)
+                setScreen('diary')
+              } else {
+                setScreen('main')
+              }
+            }}
+          >
+            {diaryAnswers.q1 || diaryAnswers.q2 ? 'Сохранить в дневник' : 'Закрыть день'}
+          </button>
+        </>
+      )}
+
+      <button
+        className="back-button"
+        onClick={() => {
+          setRitualType(null)
+          setScreen('main')
+        }}
+      >
+        ← Позже
+      </button>
+    </div>
+  )
+}
   // ===== Выбор причины =====
-  if (screen === 'lazy') {
+if (screen === 'lazy') {
     return (
       <div className="app">
         <h2>Что мешает начать?</h2>
+        <p style={{ opacity: 0.55, fontSize: 14, marginBottom: 16, lineHeight: 1.4 }}>
+          Привычка пропущена — это нормально. Выбери причину: сделаем крошечный шаг вместо вины.
+        </p>
         <div className="options">
           <button className="option-btn" onClick={() => startChain('no_energy')}>Совсем нет сил</button>
           <button className="option-btn" onClick={() => startChain('dont_know')}>Не знаю, с чего начать</button>
@@ -2685,11 +2863,11 @@ onClick={async () => {
   Завершить полностью ✓
 </button>
 <button
-  onClick={async () => {
+onClick={async () => {
     setTimerRunning(false)
-    await skipHabit(timerHabit)
     setTimerHabit(null)
-    setScreen('main')
+    await skipHabit(timerHabit)
+    // screen → 'lazy' внутри skipHabit
   }}
   style={{
     background: 'transparent',
