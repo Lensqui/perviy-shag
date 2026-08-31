@@ -461,15 +461,14 @@ const realDuration =
   15
 const total = realDuration * 60
 
-// Режим «2 минуты»: дожали ≈2 мин → 100% за день
+// Режим «2 минуты»: 100% по статусу, в фокус — реальное время
 const isQuickComplete = !!habit._quick && secondsSpent >= 118
-const newFocus = isQuickComplete
-  ? total
-  : Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
+const added = Math.max(0, secondsSpent)
+const newFocus = Math.min(total, (habit.focusSeconds || 0) + added)
 const progress = isQuickComplete
   ? 100
   : Math.min(100, Math.round((newFocus / total) * 100))
-const status = progress >= 100 ? 'done' : 'progress'
+const status = isQuickComplete || progress >= 100 ? 'done' : 'progress'
 
   const { error } = await supabase
     .from('habit_logs')
