@@ -738,19 +738,24 @@ const startEditEntry = (entry) => {
   }
 const openDay = async (dateStr) => {
   setSelectedDate(dateStr)
-  setSelectedDayHabits([]) // сразу очищаем — не мелькает чужой день
+  setSelectedDayHabits([]) // сразу чистим старый список
 
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
   if (!tgUser?.id) return
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('habit_logs')
     .select('habit_id, focus_seconds, status, habits(name, first_step, duration_minutes)')
     .eq('telegram_id', tgUser.id)
     .eq('completed_at', dateStr)
 
-  // если уже выбран другой день — ответ игнорируем
+  if (error) {
+    console.error('openDay error:', error)
+    return
+  }
+
+  // только если день всё ещё выбран
   setSelectedDate(current => {
     if (current === dateStr) {
       setSelectedDayHabits(data || [])
@@ -1027,22 +1032,29 @@ if (!day) return (
   })}
 </div>
 
-  <div style={{ marginTop: 24, minHeight: 220 }}>
+  <div style={{
+    marginTop: 20,
+    width: '100%',
+    minHeight: 160
+  }}>
   {!selectedDate ? (
     <div style={{
-      height: 220,
+      minHeight: 160,
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       opacity: 0.4,
-      gap: 8
+      gap: 8,
+      borderRadius: 16,
+      background: 'rgba(255,255,255,0.03)'
     }}>
       <div style={{ fontSize: 28 }}>📅</div>
       <div style={{ fontSize: 14 }}>Выбери день</div>
     </div>
   ) : (
-  <div>
+  <div style={{ width: '100%' }}>
     {/* Заголовок дня */}
     <div style={{ 
       display: 'flex', 
@@ -1170,15 +1182,16 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
       ? 100
       : (total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0)
     const focusMin = Math.round(focus / 60)
-
     return (
       <div 
-        key={idx}
+        key={`${item.habit_id}-${selectedDate}`}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 14,
           padding: '14px 16px',
+          width: '100%',
+          boxSizing: 'border-box',
           background: 'rgba(255,255,255,0.04)',
           borderRadius: 16,
           marginBottom: 10,
