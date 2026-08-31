@@ -160,22 +160,25 @@ const { data: logs } = await supabase
   .eq('telegram_id', tgUser.id)
   .eq('completed_at', today)
 
-const logsMap = {}
-const skippedSet = new Set()
+const logsByHabit = {}
 ;(logs || []).forEach(l => {
-  logsMap[l.habit_id] = l.focus_seconds || 0
-  if (l.status === 'skipped') skippedSet.add(l.habit_id)
+  logsByHabit[l.habit_id] = l
 })
 const habitsWithStatus = (habitsData || []).map(h => {
-  const focus = logsMap[h.id] || 0
+  const log = logsByHabit[h.id]
+  const focus = log?.focus_seconds || 0
   const total = (h.duration_minutes || 15) * 60
-  const progress = total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0
+  const isDone = log?.status === 'done' || (total > 0 && focus >= total)
+  const isSkipped = log?.status === 'skipped'
+  const progress = isDone
+    ? 100
+    : (total > 0 ? Math.min(100, Math.round((focus / total) * 100)) : 0)
   return {
     ...h,
-    focusSeconds: focus,
+    focusSeconds: isDone ? total : focus,
     progress,
-    doneToday: progress >= 100,
-    skipped: skippedSet.has(h.id)
+    doneToday: isDone,
+    skipped: isSkipped
   }
 })
 
@@ -452,18 +455,21 @@ const saveFocusProgress = async (habit, secondsSpent) => {
   if (!tgUser?.id || !habit) return
 
   const today = new Date().toISOString().slice(0, 10)
-const realDuration = habits.find(h => h.id === habit.id)?.duration_minutes
-  || habit.duration_minutes
-  || 15
+const realDuration =
+  habits.find(h => h.id === habit.id)?.duration_minutes ||
+  habit.duration_minutes ||
+  15
 const total = realDuration * 60
 
-// quick-сессия: если дожали до конца 2 мин — сразу 100%
-const isQuickComplete = habit._quick && secondsSpent >= 2 * 60 - 2
+// Режим «2 минуты»: дожали ≈2 мин → 100% за день
+const isQuickComplete = !!habit._quick && secondsSpent >= 118
 const newFocus = isQuickComplete
   ? total
   : Math.min(total, (habit.focusSeconds || 0) + secondsSpent)
-  const progress = Math.min(100, Math.round((newFocus / total) * 100))
-  const status = progress >= 100 ? 'done' : 'progress'
+const progress = isQuickComplete
+  ? 100
+  : Math.min(100, Math.round((newFocus / total) * 100))
+const status = progress >= 100 ? 'done' : 'progress'
 
   const { error } = await supabase
     .from('habit_logs')
@@ -2648,7 +2654,7 @@ onClick={async () => {
       cursor: 'pointer'
     }}
   >
-    Сохранить и выйти
+    Сохранить и выйти 
   </button>
 </div>
 
