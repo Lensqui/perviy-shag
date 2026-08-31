@@ -952,8 +952,12 @@ if (showFullCalendar) {
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
   {days.map((day, idx) => {
-    if (!day) return <div key={`empty-${idx}`} />
-
+if (!day) return (
+  <div
+    key={`empty-${idx}`}
+    style={{ height: 54 }}
+  />
+)
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const isActive = streakDays.includes(dateStr)
     const isToday = dateStr === new Date().toISOString().slice(0, 10)
@@ -1016,8 +1020,22 @@ if (showFullCalendar) {
   })}
 </div>
 
-  {selectedDate && (
-  <div style={{ marginTop: 28 }}>
+  <div style={{ marginTop: 24, minHeight: 220 }}>
+  {!selectedDate ? (
+    <div style={{
+      height: 220,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: 0.4,
+      gap: 8
+    }}>
+      <div style={{ fontSize: 28 }}>📅</div>
+      <div style={{ fontSize: 14 }}>Выбери день</div>
+    </div>
+  ) : (
+  <div>
     {/* Заголовок дня */}
     <div style={{ 
       display: 'flex', 
@@ -1218,14 +1236,15 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
   })
 )}
   </div>
-)}
+  )}
+  </div>
 
       <button className="back-button" 
       onClick={() => {
         setShowFullCalendar(false)
         setSelectedDate(null)
         setSelectedDayHabits([])
-      }} style={{ marginTop: 24 }}>
+      }} style={{ marginTop: 16 }}>
         ← Назад
       </button>
     </div>
@@ -1471,9 +1490,6 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
         <button className="main-button" onClick={() => setScreen('lazy')}>
           Мне сейчас лень
         </button>
-        <button className="main-button" onClick={() => setScreen('lazy')}>
-          Мне сейчас лень
-        </button>
 
         <div style={{ marginTop: 28, textAlign: 'left' }}>
           <h3 style={{ marginBottom: 12 }}>Мои привычки</h3>
@@ -1535,7 +1551,9 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
  return (
   <div 
     key={habit.id}
-onClick={() => !habit.skipped && !habit.doneToday && openHabitTimer(habit)}    style={{
+    className="habit-card"
+    onClick={() => !habit.skipped && !habit.doneToday && openHabitTimer(habit)}
+    style={{
       display: 'flex',
       alignItems: 'center',
       gap: 14,
@@ -1546,9 +1564,13 @@ onClick={() => !habit.skipped && !habit.doneToday && openHabitTimer(habit)}    s
       borderRadius: 18,
       marginBottom: 12,
       borderLeft: `3px solid ${habit.skipped ? '#fb923c' : color}`,
+      borderTop: '1px solid rgba(255,255,255,0.04)',
+      borderRight: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid rgba(255,255,255,0.04)',
       position: 'relative',
-    cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
-opacity: (habit.skipped || habit.doneToday) ? 0.75 : 1
+      cursor: (habit.skipped || habit.doneToday) ? 'default' : 'pointer',
+      opacity: (habit.skipped || habit.doneToday) ? 0.72 : 1,
+      transition: 'background 0.15s, opacity 0.15s'
     }}
   >
     {/* Иконка */}
@@ -2759,29 +2781,38 @@ if (screen === 'timer' && timerHabit) {
 
       {/* Круг прогресса */}
       <div style={{
-        width: 200,
-        height: 200,
+        width: 210,
+        height: 210,
         borderRadius: '50%',
-        background: `conic-gradient(#8b5cf6 ${progress}%, rgba(255,255,255,0.08) 0)`,
+        background: `conic-gradient(#8b5cf6 ${progress}%, rgba(255,255,255,0.07) 0)`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 32,
-        position: 'relative'
+        marginBottom: 28,
+        boxShadow: '0 0 40px rgba(139, 92, 246, 0.15)'
       }}>
         <div style={{
-          width: 170,
-          height: 170,
+          width: 176,
+          height: 176,
           borderRadius: '50%',
-          background: '#1a1a1f',
+          background: '#141418',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 42,
-          fontWeight: 700,
-          letterSpacing: 1
+          gap: 4
         }}>
-          {timeStr}
+          <div style={{
+            fontSize: 44,
+            fontWeight: 700,
+            letterSpacing: 1,
+            fontVariantNumeric: 'tabular-nums'
+          }}>
+            {timeStr}
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.4 }}>
+            {timerRunning ? 'идёт фокус' : 'на паузе'}
+          </div>
         </div>
       </div>
 
