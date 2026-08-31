@@ -9,27 +9,32 @@ body {
   background-color: var(--tg-theme-bg-color, #0f0f0f);
   color: var(--tg-theme-text-color, #ffffff);
   line-height: 1.45;
+  padding-top: env(safe-area-inset-top);
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px 16px 100px;
+  padding: 16px 16px calc(110px + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
 }
+
 input, textarea {
   width: 100%;
   box-sizing: border-box;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 13px 14px;
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
   font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
 }
+
 input:focus, textarea:focus {
   border-color: rgba(139, 92, 246, 0.55);
   background: rgba(255,255,255,0.08);
@@ -45,17 +50,21 @@ h1 {
   margin-bottom: 6px;
   text-align: center;
   color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
 h2 {
   font-size: 22px;
   font-weight: 700;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
+
 h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: -0.01em;
 }
 
 p {
@@ -66,42 +75,52 @@ p {
 }
 
 .user-info {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   padding: 14px 16px;
-  border-radius: 16px;
-  margin: 20px 0;
+  border-radius: 18px;
+  margin: 16px 0;
   text-align: center;
   font-size: 15px;
   color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .main-button {
   width: 100%;
-  padding: 14px 18px;
+  padding: 15px 18px;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 8px;
+  box-shadow: 0 4px 16px rgba(109, 40, 217, 0.35);
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
 .main-button:active {
-  opacity: 0.9;
-  transform: scale(0.98);
+  opacity: 0.92;
+  transform: scale(0.97);
 }
+
 .back-button {
   width: 100%;
   padding: 12px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.45);
   font-size: 14px;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 6px;
+  transition: color 0.15s;
 }
+
+.back-button:active {
+  color: rgba(255,255,255,0.75);
+}
+
 .options {
   display: flex;
   flex-direction: column;
@@ -110,28 +129,33 @@ p {
 }
 
 .option-btn {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 16px 18px;
   border-radius: 16px;
-  font-size: 16px;
+  font-size: 15px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .option-btn:active {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
 }
-
 
 .habit-card {
   background: rgba(255,255,255,0.04);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+}
+
+.habit-card:active {
+  background: rgba(255,255,255,0.07);
 }
 
 .check-btn {
@@ -156,14 +180,20 @@ p {
 
 .add-habit-btn {
   width: 100%;
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.25);
+  margin-top: 8px;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.18);
   background: transparent;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.add-habit-btn:active {
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.4);
 }
 
 .form {
@@ -195,7 +225,7 @@ p {
 }
 
 .form input:focus {
-  border-color: #3b82f6;
+  border-color: rgba(139, 92, 246, 0.55);
 }
 
 /* Навигация */
@@ -207,17 +237,19 @@ p {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 8px 14px;
-  background: rgba(15, 15, 18, 0.92);
-  backdrop-filter: blur(12px);
+  padding: 10px 8px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(12, 12, 16, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(255,255,255,0.06);
   z-index: 50;
 }
+
 .nav button {
   flex: 1;
   background: transparent;
   border: none;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.38);
   font-size: 11px;
   cursor: pointer;
   padding: 6px 4px;
@@ -226,22 +258,25 @@ p {
   align-items: center;
   gap: 3px;
 }
+
 .nav button.active {
   color: #a78bfa;
 }
+
 .nav-item {
   flex: 1;
-  padding: 14px;
+  padding: 10px 4px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+  transition: color 0.15s;
 }
 
 .nav-item.active {
-  color: #60a5fa;
+  color: #a78bfa;
 }
 
 /* Онбординг */
@@ -300,12 +335,13 @@ p {
 }
 
 .dot.active {
-  background: #3b82f6;
+  background: #a78bfa;
   width: 26px;
   border-radius: 4px;
 }
+
 .empty-state {
   text-align: center;
-  padding: 48px 20px;
-  opacity: 0.5;
+  padding: 40px 20px;
+  opacity: 0.85;
 }
