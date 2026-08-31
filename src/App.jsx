@@ -939,8 +939,8 @@ if (showFullCalendar) {
   for (let i = 1; i <= daysInMonth; i++) days.push(i)
 
   return (
-    <div className="app">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div className="app" style={{ width: '100%', maxWidth: 480, boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, width: '100%' }}>
         <button 
           onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
           style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}
@@ -962,7 +962,7 @@ if (showFullCalendar) {
         ))}
       </div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
   {days.map((day, idx) => {
 if (!day) return (
   <div
@@ -1033,28 +1033,31 @@ if (!day) return (
 </div>
 
   <div style={{
-    marginTop: 20,
+    marginTop: 24,
     width: '100%',
-    minHeight: 160
+    minHeight: 180,
+    boxSizing: 'border-box'
   }}>
   {!selectedDate ? (
-    <div style={{
-      minHeight: 160,
+<div style={{
+      minHeight: 180,
       width: '100%',
+      boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      opacity: 0.4,
+      opacity: 0.45,
       gap: 8,
       borderRadius: 16,
-      background: 'rgba(255,255,255,0.03)'
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.04)'
     }}>
       <div style={{ fontSize: 28 }}>📅</div>
       <div style={{ fontSize: 14 }}>Выбери день</div>
     </div>
   ) : (
-  <div style={{ width: '100%' }}>
+<div style={{ width: '100%', boxSizing: 'border-box' }}>
     {/* Заголовок дня */}
     <div style={{ 
       display: 'flex', 
@@ -1148,9 +1151,18 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 
 {/* Список привычек за день */}
 {selectedDayHabits.length === 0 ? (
-  <p style={{ opacity: 0.6, fontSize: 14, textAlign: 'center' }}>
-    В этот день привычки не отмечались
-  </p>
+ <div style={{
+    width: '100%',
+    boxSizing: 'border-box',
+    textAlign: 'center',
+    padding: '28px 16px',
+    borderRadius: 16,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.04)',
+    opacity: 0.7
+  }}>
+    <div style={{ fontSize: 14 }}>В этот день привычки не отмечались</div>
+  </div>
 ) : (
   selectedDayHabits.map((item, idx) => {
     const name = (item.habits?.name || '').toLowerCase()
