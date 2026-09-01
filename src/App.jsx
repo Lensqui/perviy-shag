@@ -1848,8 +1848,14 @@ if (screen === 'stats') {
   return (
     <div className="app" style={{ textAlign: 'left', paddingBottom: 100 }}>
       <h2 style={{ marginBottom: 4 }}>Статистика</h2>
-      <p style={{ opacity: 0.5, fontSize: 13, marginBottom: 20 }}>
-        Твой прогресс на пути к лучшей версии себя
+        <p style={{
+        opacity: 0.45,
+        fontSize: 13,
+        marginBottom: 18,
+        textAlign: 'left',
+        marginTop: 0
+      }}>
+        Фокус, серии и привычки за период
       </p>
 
       {/* Период */}
@@ -1877,11 +1883,12 @@ if (screen === 'stats') {
               padding: '10px 0',
               borderRadius: 12,
               border: 'none',
-              background: statsPeriod === p.id ? '#8b5cf6' : 'transparent',
-              color: '#fff',
+                        background: statsPeriod === p.id ? '#8b5cf6' : 'transparent',
+              color: statsPeriod === p.id ? '#fff' : 'rgba(255,255,255,0.5)',
               fontSize: 13,
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'background 0.15s, color 0.15s'
             }}
           >
             {p.label}
@@ -1889,8 +1896,29 @@ if (screen === 'stats') {
         ))}
       </div>
 
-      {!d ? (
-        <p style={{ opacity: 0.5, textAlign: 'center' }}>Загрузка...</p>
+        {!d ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '48px 20px',
+          opacity: 0.5
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
+          <div style={{ fontSize: 14 }}>Загрузка статистики...</div>
+        </div>
+      ) : d.totalTasks === 0 && d.totalFocus === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          borderRadius: 20,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🌱</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Пока пусто</div>
+          <div style={{ fontSize: 13, opacity: 0.55, lineHeight: 1.4 }}>
+            Отметь привычки за этот период — здесь появится прогресс
+          </div>
+        </div>
       ) : (
         <>
           {/* Общая картина */}
@@ -2100,7 +2128,16 @@ if (screen === 'diary') {
         <button
       onClick={() => {
   setEditingEntryId(null)
-  setDiaryAnswers({ q1: '', q2: '', q3: '' })
+  setDiaryAnswers({
+    q1: '',
+    q2: '',
+    q3: '',
+    gratitude: '',
+    free_thoughts: '',
+    rating_done: '',
+    rating_improve: '',
+    tags: ''
+  })
   setSelectedDiaryDate(new Date().toISOString().slice(0, 10))
   setShowDiaryForm(true)
 }}
@@ -2119,7 +2156,47 @@ if (screen === 'diary') {
           + Запись
         </button>
       </div>
-
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 14,
+        marginBottom: 8
+      }}>
+        <button
+          onClick={() => setDiaryWeekOffset(o => o - 1)}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: 'none',
+            color: '#fff',
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            cursor: 'pointer',
+            fontSize: 16
+          }}
+        >
+          ←
+        </button>
+        <div style={{ fontSize: 13, opacity: 0.5 }}>
+          {diaryWeekOffset === 0 ? 'Эта неделя' : diaryWeekOffset === -1 ? 'Прошлая неделя' : `Смещение: ${diaryWeekOffset}`}
+        </div>
+        <button
+          onClick={() => setDiaryWeekOffset(o => Math.min(0, o + 1))}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: 'none',
+            color: diaryWeekOffset >= 0 ? 'rgba(255,255,255,0.25)' : '#fff',
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            cursor: diaryWeekOffset >= 0 ? 'default' : 'pointer',
+            fontSize: 16
+          }}
+        >
+          →
+        </button>
+      </div>
     {/* Неделя */}
 <div style={{
   display: 'flex',
@@ -2329,17 +2406,21 @@ if (screen === 'diary') {
 
       {/* Записи выбранного дня */}
       {!showDiaryForm && dayEntries.length === 0 && (
-        <div style={{
+                <div style={{
           textAlign: 'center',
-          padding: '40px 20px',
-          opacity: 0.45
+          padding: '36px 20px',
+          borderRadius: 20,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.05)'
         }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📝</div>
-          <div style={{ fontSize: 14 }}>Нет записей за этот день</div>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>📝</div>
+          <div style={{ fontSize: 14, marginBottom: 6 }}>Нет записей за этот день</div>
+          <div style={{ fontSize: 12, opacity: 0.45, marginBottom: 14 }}>
+            Коротко зафиксируй день — этого достаточно
+          </div>
           <button
             onClick={() => setShowDiaryForm(true)}
             style={{
-              marginTop: 16,
               background: 'rgba(139, 92, 246, 0.2)',
               border: 'none',
               color: '#c4b5fd',
