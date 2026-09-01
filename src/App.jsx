@@ -23,7 +23,8 @@ const [notifSettings, setNotifSettings] = useState({
   morning_on: true,
   evening_on: true,
   habits_on: true,
-  streak_on: true
+  streak_on: true,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
 })
 const [currentStep, setCurrentStep] = useState(0)
 const [newDuration, setNewDuration] = useState(15)
@@ -99,7 +100,25 @@ const [diaryAnswers, setDiaryAnswers] = useState({
   { name: 'Меньше телефона', firstStep: 'Поставить телефон экраном вниз на 2 минуты', duration: 5, priority: 'high' },
   { name: 'Ранний подъём', firstStep: 'Сразу встать с кровати', duration: 5, priority: 'high' },
 ]
-
+const TIMEZONES = [
+  { id: 'Europe/Kaliningrad', label: 'Калининград (UTC+2)' },
+  { id: 'Europe/Moscow', label: 'Москва / СПб (UTC+3)' },
+  { id: 'Europe/Samara', label: 'Самара (UTC+4)' },
+  { id: 'Asia/Yekaterinburg', label: 'Екатеринбург / Тюмень (UTC+5)' },
+  { id: 'Asia/Omsk', label: 'Омск (UTC+6)' },
+  { id: 'Asia/Krasnoyarsk', label: 'Красноярск (UTC+7)' },
+  { id: 'Asia/Irkutsk', label: 'Иркутск (UTC+8)' },
+  { id: 'Asia/Yakutsk', label: 'Якутск (UTC+9)' },
+  { id: 'Asia/Vladivostok', label: 'Владивосток (UTC+10)' },
+  { id: 'Asia/Magadan', label: 'Магадан (UTC+11)' },
+  { id: 'Asia/Kamchatka', label: 'Камчатка (UTC+12)' },
+  { id: 'Europe/Kyiv', label: 'Киев (UTC+2/+3)' },
+  { id: 'Asia/Almaty', label: 'Алматы (UTC+5)' },
+  { id: 'Asia/Tashkent', label: 'Ташкент (UTC+5)' },
+  { id: 'Europe/Minsk', label: 'Минск (UTC+3)' },
+  { id: 'Europe/Berlin', label: 'Берлин (UTC+1/+2)' },
+  { id: 'UTC', label: 'UTC' },
+]
  // Загрузка данных
 useEffect(() => {
   const init = async () => {
@@ -761,15 +780,45 @@ const startEditEntry = (entry) => {
     return
   }
   if (data) {
-    setNotifSettings({
-      enabled: data.enabled ?? true,
-      morning_time: data.morning_time || '09:00',
-      evening_time: data.evening_time || '21:00',
-      morning_on: data.morning_on ?? true,
-      evening_on: data.evening_on ?? true,
-      habits_on: data.habits_on ?? true,
-      streak_on: data.streak_on ?? true
-    })
+const saveNotifSettings = async (next) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) {
+    alert('Нет telegram user id')
+    return
+  }
+
+const timezone =
+    next.timezone ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'Europe/Moscow'
+
+  const payload = { ...next, timezone }
+  setNotifSettings(payload)
+
+  const { data, error } = await supabase
+    .from('notification_settings')
+    .upsert({
+      telegram_id: tgUser.id,
+      enabled: payload.enabled,
+      morning_time: payload.morning_time,
+      evening_time: payload.evening_time,
+      morning_on: payload.morning_on,
+      evening_on: payload.evening_on,
+      habits_on: payload.habits_on,
+      streak_on: payload.streak_on,
+      timezone: payload.timezone,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'telegram_id' })
+    .select()
+
+  if (error) {
+    console.error('notif save:', error)
+    alert('Ошибка сохранения: ' + error.message)
+  } else {
+    console.log('notif saved', data)
+  }
+}
   }
 }
 
@@ -3003,7 +3052,48 @@ if (screen === 'settings') {
           ))}
         </>
       )}
-
+      <div style={{
+        padding: '14px 16px',
+        background: 'rgba(255,255,255,0.04)',
+        borderRadius: 16,
+        marginBottom: 10,
+        marginTop: 4
+      }}>
+        <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 10 }}>
+          Часовой пояс
+        </div>
+        <select
+          value={
+            TIMEZONES.some(t => t.id === s.timezone)
+              ? s.timezone
+              : (s.timezone || 'Europe/Moscow')
+          }
+          onChange={e => saveNotifSettings({ ...s, timezone: e.target.value })}
+          style={{
+            width: '100%',
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(0,0,0,0.35)',
+            color: '#fff',
+            fontSize: 14,
+            outline: 'none'
+          }}
+        >
+          {/* если авто-пояс не из списка — показываем его отдельной опцией */}
+          {s.timezone && !TIMEZONES.some(t => t.id === s.timezone) && (
+            <option value={s.timezone}>{s.timezone} (с устройства)</option>
+          )}
+          {TIMEZONES.map(t => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <div style={{ fontSize: 11, opacity: 0.4, marginTop: 8 }}>
+          По этому поясу приходят утренние и вечерние напоминания
+        </div>
+      </div>
       <p style={{
         fontSize: 12,
         opacity: 0.4,
