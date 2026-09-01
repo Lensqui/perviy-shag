@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import WebApp from '@twa-dev/sdk'
 import './App.css'
 import { supabase } from './supabase'
@@ -14,6 +14,7 @@ const [showFullCalendar, setShowFullCalendar] = useState(false)
 const [currentMonth, setCurrentMonth] = useState(new Date())
 const [selectedDate, setSelectedDate] = useState(null)
 const [selectedDayHabits, setSelectedDayHabits] = useState([])
+const selectedDateRef = useRef(null)
 const [ritualType, setRitualType] = useState(null) // 'morning' | 'evening' | null
 const [currentStep, setCurrentStep] = useState(0)
 const [newDuration, setNewDuration] = useState(15)
@@ -737,31 +738,37 @@ const startEditEntry = (entry) => {
     setScreen('chain')
   }
 const openDay = async (dateStr) => {
+  selectedDateRef.current = dateStr
   setSelectedDate(dateStr)
-  setSelectedDayHabits([]) // сразу чистим старый список
+  setSelectedDayHabits([])
 
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
   if (!tgUser?.id) return
 
+  // следующий день — если completed_at timestamptz, а не date
+  const next = new Date(dateStr + 'T12:00:00')
+  next.setDate(next.getDate() + 1)
+  const nextStr = next.toISOString().slice(0, 10)
+
   const { data, error } = await supabase
     .from('habit_logs')
-    .select('habit_id, focus_seconds, status, habits(name, first_step, duration_minutes)')
+    .select('habit_id, focus_seconds, status, completed_at, habits(name, first_step, duration_minutes)')
     .eq('telegram_id', tgUser.id)
-    .eq('completed_at', dateStr)
+    .gte('completed_at', dateStr)
+    .lt('completed_at', nextStr)
 
   if (error) {
     console.error('openDay error:', error)
     return
   }
 
-  // только если день всё ещё выбран
-  setSelectedDate(current => {
-    if (current === dateStr) {
-      setSelectedDayHabits(data || [])
-    }
-    return current
-  })
+  console.log('openDay', dateStr, 'rows:', data?.length, data)
+
+  // ответ устарел — пользователь уже выбрал другой день
+  if (selectedDateRef.current !== dateStr) return
+
+  setSelectedDayHabits(data || [])
 }
 const loadStats = async (period = 'week') => {
   const telegram = window.Telegram?.WebApp
