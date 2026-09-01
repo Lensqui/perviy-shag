@@ -16,11 +16,21 @@ const [selectedDate, setSelectedDate] = useState(null)
 const [selectedDayHabits, setSelectedDayHabits] = useState([])
 const selectedDateRef = useRef(null)
 const [ritualType, setRitualType] = useState(null) // 'morning' | 'evening' | null
+const [notifSettings, setNotifSettings] = useState({
+  enabled: true,
+  morning_time: '09:00',
+  evening_time: '21:00',
+  morning_on: true,
+  evening_on: true,
+  habits_on: true,
+  streak_on: true
+})
 const [currentStep, setCurrentStep] = useState(0)
 const [newDuration, setNewDuration] = useState(15)
 const [newTime, setNewTime] = useState('')
 const [newPriority, setNewPriority] = useState('normal')
 const [timerHabit, setTimerHabit] = useState(null)
+
 const [timerSeconds, setTimerSeconds] = useState(0)
 const [timerRunning, setTimerRunning] = useState(false)
   const [habits, setHabits] = useState([])
@@ -131,6 +141,7 @@ useEffect(() => {
         if (error) {
           console.error('Ошибка сохранения пользователя:', error)
         }
+        await loadNotifSettings(tgUser.id)
 const thirtyDaysAgo = new Date()
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 const fromDate = thirtyDaysAgo.toISOString().slice(0, 10)
@@ -737,6 +748,52 @@ const startEditEntry = (entry) => {
     setCurrentStep(0)
     setScreen('chain')
   }
+  const loadNotifSettings = async (tgId) => {
+  if (!tgId) return
+  const { data, error } = await supabase
+    .from('notification_settings')
+    .select('*')
+    .eq('telegram_id', tgId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('notif load:', error)
+    return
+  }
+  if (data) {
+    setNotifSettings({
+      enabled: data.enabled ?? true,
+      morning_time: data.morning_time || '09:00',
+      evening_time: data.evening_time || '21:00',
+      morning_on: data.morning_on ?? true,
+      evening_on: data.evening_on ?? true,
+      habits_on: data.habits_on ?? true,
+      streak_on: data.streak_on ?? true
+    })
+  }
+}
+
+const saveNotifSettings = async (next) => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) return
+
+  setNotifSettings(next)
+
+  const { error } = await supabase.from('notification_settings').upsert({
+    telegram_id: tgUser.id,
+    enabled: next.enabled,
+    morning_time: next.morning_time,
+    evening_time: next.evening_time,
+    morning_on: next.morning_on,
+    evening_on: next.evening_on,
+    habits_on: next.habits_on,
+    streak_on: next.streak_on,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'telegram_id' })
+
+  if (error) console.error('notif save:', error)
+}
 const openDay = async (dateStr) => {
   selectedDateRef.current = dateStr
   setSelectedDate(dateStr)
@@ -770,6 +827,7 @@ const openDay = async (dateStr) => {
 
   setSelectedDayHabits(data || [])
 }
+
 const loadStats = async (period = 'week') => {
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
@@ -1378,6 +1436,23 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     return (
       <div className="app">
         <h1>Первый шаг</h1>
+        <button
+  type="button"
+  onClick={() => setScreen('settings')}
+  style={{
+    background: 'rgba(255,255,255,0.06)',
+    border: 'none',
+    color: '#fff',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    fontSize: 18,
+    cursor: 'pointer'
+  }}
+  title="Уведомления"
+>
+  🔔
+</button>
         <p>Трекер против лени и прокрастинации</p>
 
   <div className="user-info">
@@ -2815,6 +2890,128 @@ if (screen === 'ritual' && ritualType) {
         }}
       >
         ← Позже
+      </button>
+    </div>
+  )
+}
+if (screen === 'settings') {
+  const s = notifSettings
+  const toggle = (key) => saveNotifSettings({ ...s, [key]: !s[key] })
+
+  return (
+    <div className="app" style={{ textAlign: 'left' }}>
+      <h2 style={{ marginBottom: 4 }}>Уведомления</h2>
+      <p style={{
+        opacity: 0.45,
+        fontSize: 13,
+        marginBottom: 20,
+        textAlign: 'left',
+        marginTop: 0
+      }}>
+        Бот напишет в этот чат в нужное время
+      </p>
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        background: 'rgba(255,255,255,0.04)',
+        borderRadius: 16,
+        marginBottom: 12
+      }}>
+        <div>
+          <div style={{ fontWeight: 600 }}>Включить</div>
+          <div style={{ fontSize: 12, opacity: 0.5 }}>Все напоминания</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => toggle('enabled')}
+          style={{
+            width: 52,
+            height: 30,
+            borderRadius: 20,
+            border: 'none',
+            background: s.enabled ? '#8b5cf6' : 'rgba(255,255,255,0.12)',
+            cursor: 'pointer',
+            position: 'relative'
+          }}
+        >
+          <span style={{
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: '#fff',
+            position: 'absolute',
+            top: 3,
+            left: s.enabled ? 25 : 3,
+            transition: 'left 0.15s',
+            display: 'block'
+          }} />
+        </button>
+      </div>
+
+      {s.enabled && (
+        <>
+          {[
+            { key: 'morning_on', label: 'Утренний ритуал', timeKey: 'morning_time' },
+            { key: 'evening_on', label: 'Вечерний ритуал', timeKey: 'evening_time' },
+            { key: 'habits_on', label: 'Напоминания о привычках', timeKey: null },
+            { key: 'streak_on', label: 'Предупреждение о стрике', timeKey: null }
+          ].map(item => (
+            <div key={item.key} style={{
+              padding: '14px 16px',
+              background: 'rgba(255,255,255,0.04)',
+              borderRadius: 16,
+              marginBottom: 10
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div style={{ fontWeight: 500, fontSize: 14 }}>{item.label}</div>
+                <button
+                  type="button"
+                  onClick={() => toggle(item.key)}
+                  style={{
+                    fontSize: 12,
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    border: 'none',
+                    background: s[item.key] ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: s[item.key] ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {s[item.key] ? 'Вкл' : 'Выкл'}
+                </button>
+              </div>
+              {item.timeKey && s[item.key] && (
+                <input
+                  type="time"
+                  value={s[item.timeKey]}
+                  onChange={e => saveNotifSettings({ ...s, [item.timeKey]: e.target.value })}
+                  style={{ marginTop: 10 }}
+                />
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
+      <p style={{
+        fontSize: 12,
+        opacity: 0.4,
+        marginTop: 16,
+        textAlign: 'left',
+        lineHeight: 1.45
+      }}>
+        Чтобы сообщения доходили, один раз напиши боту /start в обычном чате.
+      </p>
+
+      <button className="back-button" onClick={() => setScreen('main')}>
+        ← Назад
       </button>
     </div>
   )
