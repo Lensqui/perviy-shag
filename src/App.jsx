@@ -1436,23 +1436,6 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     return (
       <div className="app">
         <h1>Первый шаг</h1>
-        <button
-  type="button"
-  onClick={() => setScreen('settings')}
-  style={{
-    background: 'rgba(255,255,255,0.06)',
-    border: 'none',
-    color: '#fff',
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    fontSize: 18,
-    cursor: 'pointer'
-  }}
-  title="Уведомления"
->
-  🔔
-</button>
         <p>Трекер против лени и прокрастинации</p>
 
   <div className="user-info">
@@ -1460,6 +1443,27 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
     <div>
       {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
     </div>
+    <button
+      type="button"
+      onClick={() => setScreen('settings')}
+      style={{
+        background: 'rgba(255,255,255,0.08)',
+        border: 'none',
+        color: '#fff',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        fontSize: 18,
+        cursor: 'pointer',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      title="Уведомления"
+    >
+      🔔
+    </button>
   </div>
 {/* Стрик */}
 <div style={{
