@@ -13,6 +13,8 @@ const [statsData, setStatsData] = useState(null)
 const [showFullCalendar, setShowFullCalendar] = useState(false)
 const [currentMonth, setCurrentMonth] = useState(new Date())
 const [selectedDate, setSelectedDate] = useState(null)
+const [isPremium, setIsPremium] = useState(false)
+const [premiumUntil, setPremiumUntil] = useState(null)
 const [selectedDayHabits, setSelectedDayHabits] = useState([])
 const selectedDateRef = useRef(null)
 const [ritualType, setRitualType] = useState(null) // 'morning' | 'evening' | null
@@ -153,7 +155,6 @@ useEffect(() => {
             last_name: tgUser.last_name || null,
             username: tgUser.username || null,
             language_code: tgUser.language_code || null,
-            is_premium: tgUser.is_premium || false,
             updated_at: new Date().toISOString()
           }, { onConflict: 'telegram_id' })
 
@@ -161,6 +162,18 @@ useEffect(() => {
           console.error('Ошибка сохранения пользователя:', error)
         }
         await loadNotifSettings(tgUser.id)
+                const { data: userRow } = await supabase
+          .from('users')
+          .select('is_premium, premium_until')
+          .eq('telegram_id', tgUser.id)
+          .maybeSingle()
+
+        const until = userRow?.premium_until ? new Date(userRow.premium_until) : null
+        const active =
+          !!userRow?.is_premium ||
+          (until && until.getTime() > Date.now())
+        setIsPremium(!!active)
+        setPremiumUntil(until)
 const thirtyDaysAgo = new Date()
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 const fromDate = thirtyDaysAgo.toISOString().slice(0, 10)
@@ -342,13 +355,73 @@ const openHabitTimer = (habit) => {
     localStorage.setItem('onboardingDone', 'true')
     setScreen('main')
   }
+const buyPremium = async () => {
+  const telegram = window.Telegram?.WebApp
+  const tgUser = telegram?.initDataUnsafe?.user || user
+  if (!tgUser?.id) {
+    alert('Открой приложение через бота')
+    return
+  }
 
+  try {
+    const res = await fetch(
+      'https://kaxtbausoljtpfkurqir.supabase.co/functions/v1/create-stars-invoice',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer sb_publishable_B27jfYtShc8zrIidh5p1tw_Wf_4X76R',
+          apikey: 'sb_publishable_B27jfYtShc8zrIidh5p1tw_Wf_4X76R',
+        },
+        body: JSON.stringify({ telegram_id: tgUser.id }),
+      }
+    )
+    const data = await res.json()
+    if (!data.url) {
+      alert('Не удалось создать счёт')
+      console.log(data)
+      return
+    }
+
+    if (telegram?.openInvoice) {
+      telegram.openInvoice(data.url, async (status) => {
+        if (status === 'paid') {
+          setTimeout(async () => {
+            const { data: userRow } = await supabase
+              .from('users')
+              .select('is_premium, premium_until')
+              .eq('telegram_id', tgUser.id)
+              .maybeSingle()
+            const until = userRow?.premium_until ? new Date(userRow.premium_until) : null
+            const active =
+              !!userRow?.is_premium ||
+              (until && until.getTime() > Date.now())
+            setIsPremium(!!active)
+            setPremiumUntil(until)
+            alert(active ? 'Premium активирован!' : 'Оплата прошла. Перезайди через пару секунд.')
+          }, 2000)
+        } else if (status === 'failed') {
+          alert('Оплата не прошла')
+        }
+      })
+    } else {
+      alert('openInvoice недоступен — открой через Telegram')
+    }
+  } catch (e) {
+    console.error(e)
+    alert('Ошибка оплаты')
+  }
+}
 const addHabit = async (name, firstStep, duration = 15, time = null, priority = 'normal') => {
   if (!name?.trim() || !firstStep?.trim()) {
     alert('Заполни название и первый шаг')
     return
   }
-
+if (!isPremium && habits.length >= 3) {
+    alert('Бесплатно до 3 привычек. Premium — в настройках 🔔')
+    setScreen('settings')
+    return
+  }
   const alreadyExists = habits.some(h => 
     h.name.trim().toLowerCase() === name.trim().toLowerCase()
   )
@@ -3093,7 +3166,29 @@ if (screen === 'settings') {
       }}>
         Чтобы сообщения доходили, один раз напиши боту /start в обычном чате.
       </p>
-
+      <div style={{
+        padding: 16,
+        background: isPremium ? 'rgba(34,197,94,0.12)' : 'rgba(139,92,246,0.12)',
+        borderRadius: 16,
+        marginBottom: 16,
+        marginTop: 8
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>
+          {isPremium ? '✨ Premium активен' : '✨ Premium'}
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 12, lineHeight: 1.4 }}>
+          {isPremium
+            ? (premiumUntil
+                ? `До ${premiumUntil.toLocaleDateString('ru-RU')}`
+                : 'Без ограничений')
+            : '100 ⭐ / 30 дней — больше привычек, полная статистика, все напоминания'}
+        </div>
+        {!isPremium && (
+          <button type="button" className="main-button" onClick={buyPremium}>
+            Оплатить Stars
+          </button>
+        )}
+      </div>
       <button className="back-button" onClick={() => setScreen('main')}>
         ← Назад
       </button>
