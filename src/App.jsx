@@ -767,7 +767,7 @@ const startEditEntry = (entry) => {
     setCurrentStep(0)
     setScreen('chain')
   }
-  const loadNotifSettings = async (tgId) => {
+ const loadNotifSettings = async (tgId) => {
   if (!tgId) return
   const { data, error } = await supabase
     .from('notification_settings')
@@ -780,6 +780,19 @@ const startEditEntry = (entry) => {
     return
   }
   if (data) {
+    setNotifSettings({
+      enabled: data.enabled ?? true,
+      morning_time: data.morning_time || '09:00',
+      evening_time: data.evening_time || '21:00',
+      morning_on: data.morning_on ?? true,
+      evening_on: data.evening_on ?? true,
+      habits_on: data.habits_on ?? true,
+      streak_on: data.streak_on ?? true,
+      timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
+    })
+  }
+}
+
 const saveNotifSettings = async (next) => {
   const telegram = window.Telegram?.WebApp
   const tgUser = telegram?.initDataUnsafe?.user || user
@@ -788,7 +801,8 @@ const saveNotifSettings = async (next) => {
     return
   }
 
-const timezone =
+  // приоритет: то, что в next (выбор пользователя)
+  const timezone =
     next.timezone ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
     'Europe/Moscow'
@@ -818,30 +832,6 @@ const timezone =
   } else {
     console.log('notif saved', data)
   }
-}
-  }
-}
-
-const saveNotifSettings = async (next) => {
-  const telegram = window.Telegram?.WebApp
-  const tgUser = telegram?.initDataUnsafe?.user || user
-  if (!tgUser?.id) return
-
-  setNotifSettings(next)
-
-  const { error } = await supabase.from('notification_settings').upsert({
-    telegram_id: tgUser.id,
-    enabled: next.enabled,
-    morning_time: next.morning_time,
-    evening_time: next.evening_time,
-    morning_on: next.morning_on,
-    evening_on: next.evening_on,
-    habits_on: next.habits_on,
-    streak_on: next.streak_on,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'telegram_id' })
-
-  if (error) console.error('notif save:', error)
 }
 const openDay = async (dateStr) => {
   selectedDateRef.current = dateStr
