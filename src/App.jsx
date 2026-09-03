@@ -363,6 +363,8 @@ const buyPremium = async () => {
     return
   }
 
+  alert('Создаём счёт…') // или свой лоадер на экране
+
   try {
     const res = await fetch(
       'https://kaxtbausoljtpfkurqir.supabase.co/functions/v1/create-stars-invoice',
@@ -377,39 +379,40 @@ const buyPremium = async () => {
       }
     )
     const data = await res.json()
+    console.log('invoice', data)
+
     if (!data.url) {
-      alert('Не удалось создать счёт')
-      console.log(data)
+      alert('Не удалось создать счёт: ' + JSON.stringify(data))
       return
     }
 
-    if (telegram?.openInvoice) {
-      telegram.openInvoice(data.url, async (status) => {
-        if (status === 'paid') {
-          setTimeout(async () => {
-            const { data: userRow } = await supabase
-              .from('users')
-              .select('is_premium, premium_until')
-              .eq('telegram_id', tgUser.id)
-              .maybeSingle()
-            const until = userRow?.premium_until ? new Date(userRow.premium_until) : null
-            const active =
-              !!userRow?.is_premium ||
-              (until && until.getTime() > Date.now())
-            setIsPremium(!!active)
-            setPremiumUntil(until)
-            alert(active ? 'Premium активирован!' : 'Оплата прошла. Перезайди через пару секунд.')
-          }, 2000)
-        } else if (status === 'failed') {
-          alert('Оплата не прошла')
-        }
-      })
-    } else {
-      alert('openInvoice недоступен — открой через Telegram')
-    }
+    // сразу, без await между url и openInvoice
+    telegram.openInvoice(data.url, (status) => {
+      console.log('invoice status', status)
+      if (status === 'paid') {
+        setTimeout(async () => {
+          const { data: userRow } = await supabase
+            .from('users')
+            .select('is_premium, premium_until')
+            .eq('telegram_id', tgUser.id)
+            .maybeSingle()
+          const until = userRow?.premium_until ? new Date(userRow.premium_until) : null
+          const active =
+            !!userRow?.is_premium ||
+            (until && until.getTime() > Date.now())
+          setIsPremium(!!active)
+          setPremiumUntil(until)
+          alert(active ? 'Premium активирован!' : 'Оплата прошла. Перезайди через пару секунд.')
+        }, 2000)
+      } else if (status === 'failed' || status === 'cancelled') {
+        alert(status === 'cancelled' ? 'Оплата отменена' : 'Оплата не прошла')
+      } else {
+        alert('Статус: ' + status)
+      }
+    })
   } catch (e) {
     console.error(e)
-    alert('Ошибка оплаты')
+    alert('Ошибка: ' + e.message)
   }
 }
 const addHabit = async (name, firstStep, duration = 15, time = null, priority = 'normal') => {
