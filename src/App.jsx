@@ -381,8 +381,14 @@ const buyPremium = async () => {
     const data = await res.json()
     console.log('invoice', data)
 
+if (data.mode === 'chat') {
+      alert('Счёт на 1 ⭐ отправлен в чат с ботом.\nЗакрой мини-приложение и открой чат — там кнопка оплаты.')
+      return
+    }
+
     if (!data.url) {
       alert('Не удалось создать счёт: ' + JSON.stringify(data))
+      console.log(data)
       return
     }
 
