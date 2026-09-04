@@ -382,8 +382,10 @@ const buyPremium = async () => {
     console.log('invoice', data)
 
 if (data.mode === 'chat') {
-      alert('Счёт на 1 ⭐ отправлен в чат с ботом.\nЗакрой мини-приложение и открой чат — там кнопка оплаты.')
-      return
+alert(
+  `Счёт на ${data.stars || 100} ⭐ отправлен в чат с ботом.\nЗакрой мини-приложение и открой чат — там кнопка оплаты.`
+)      
+return
     }
 
     if (!data.url) {
