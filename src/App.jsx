@@ -1561,8 +1561,30 @@ const skipped = selectedDayHabits.filter(item => item.status === 'skipped').leng
 
   <div className="user-info">
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-    <div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {user ? <>Привет, <strong>{user.first_name}</strong>!</> : <>Привет!</>}
+      {isPremium && (
+        <span
+          title={
+            premiumUntil
+              ? `Premium до ${premiumUntil.toLocaleDateString('ru-RU')}`
+              : 'Premium'
+          }
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#fbbf24',
+            background: 'rgba(251, 191, 36, 0.15)',
+            padding: '3px 8px',
+            borderRadius: 20
+          }}
+        >
+          👑 Premium
+        </span>
+      )}
     </div>
     <button
       type="button"
@@ -2051,7 +2073,32 @@ if (screen === 'stats') {
   }
 
   const d = statsData
-
+if (!isPremium) {
+    return (
+      <div className="app" style={{ textAlign: 'left' }}>
+        <h2>Статистика</h2>
+        <div style={{
+          marginTop: 24,
+          padding: 24,
+          borderRadius: 20,
+          background: 'rgba(139,92,246,0.12)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>👑</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Полная статистика в Premium</div>
+          <div style={{ fontSize: 13, opacity: 0.6, marginBottom: 16, lineHeight: 1.4 }}>
+            Фокус-время, серии, прогресс по периодам — после подписки.
+          </div>
+          <button className="main-button" onClick={() => setScreen('settings')}>
+            Оформить Premium
+          </button>
+        </div>
+        <button className="back-button" onClick={() => setScreen('main')} style={{ marginTop: 16 }}>
+          ← Назад
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="app" style={{ textAlign: 'left', paddingBottom: 100 }}>
       <h2 style={{ marginBottom: 4 }}>Статистика</h2>
@@ -3078,41 +3125,60 @@ if (screen === 'settings') {
 
       {s.enabled && (
         <>
-          {[
-            { key: 'morning_on', label: 'Утренний ритуал', timeKey: 'morning_time' },
-            { key: 'evening_on', label: 'Вечерний ритуал', timeKey: 'evening_time' },
-            { key: 'habits_on', label: 'Напоминания о привычках', timeKey: null },
-            { key: 'streak_on', label: 'Предупреждение о стрике', timeKey: null }
-          ].map(item => (
+                 {[
+            { key: 'morning_on', label: 'Утренний ритуал', timeKey: 'morning_time', premium: false },
+            { key: 'evening_on', label: 'Вечерний ритуал', timeKey: 'evening_time', premium: false },
+            { key: 'habits_on', label: 'Напоминания о привычках', timeKey: null, premium: true },
+            { key: 'streak_on', label: 'Предупреждение о стрике', timeKey: null, premium: true }
+          ].map(item => {
+            const locked = item.premium && !isPremium
+            return (
             <div key={item.key} style={{
               padding: '14px 16px',
               background: 'rgba(255,255,255,0.04)',
               borderRadius: 16,
-              marginBottom: 10
+              marginBottom: 10,
+              opacity: locked ? 0.55 : 1
             }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <div style={{ fontWeight: 500, fontSize: 14 }}>{item.label}</div>
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: 14 }}>
+                    {item.label}{item.premium ? ' 👑' : ''}
+                  </div>
+                  {locked && (
+                    <div style={{ fontSize: 11, opacity: 0.5, marginTop: 2 }}>
+                      Только в Premium
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => toggle(item.key)}
+                  onClick={() => {
+                    if (locked) {
+                      // скролл к блоку Premium ниже или alert
+                      alert('Доступно в Premium')
+                      return
+                    }
+                    toggle(item.key)
+                  }}
                   style={{
                     fontSize: 12,
                     padding: '6px 12px',
                     borderRadius: 20,
                     border: 'none',
-                    background: s[item.key] ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)',
-                    color: s[item.key] ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                    background: !locked && s[item.key] ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: !locked && s[item.key] ? '#4ade80' : 'rgba(255,255,255,0.4)',
                     cursor: 'pointer'
                   }}
                 >
-                  {s[item.key] ? 'Вкл' : 'Выкл'}
+                  {locked ? '🔒' : (s[item.key] ? 'Вкл' : 'Выкл')}
                 </button>
               </div>
-              {item.timeKey && s[item.key] && (
+              {item.timeKey && s[item.key] && !locked && (
                 <input
                   type="time"
                   value={s[item.timeKey]}
@@ -3121,7 +3187,8 @@ if (screen === 'settings') {
                 />
               )}
             </div>
-          ))}
+            )
+          })}
         </>
       )}
       <div style={{
@@ -3192,11 +3259,15 @@ if (screen === 'settings') {
                 : 'Без ограничений')
             : '100 ⭐ / 30 дней — больше привычек, полная статистика, все напоминания'}
         </div>
-        {!isPremium && (
+       {isPremium ? (
+        <button type="button" className="main-button" onClick={buyPremium}>
+            Продлить на 30 дней
+          </button>
+        ) : (
           <button type="button" className="main-button" onClick={buyPremium}>
             Оплатить Stars
           </button>
-        )}
+   )}
       </div>
       <button className="back-button" onClick={() => setScreen('main')}>
         ← Назад
